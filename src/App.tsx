@@ -208,7 +208,7 @@ function Layout() {
           <Settings onImport={openImport} className="hidden justify-end px-6 py-2.5 lg:flex" />
         </header>
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-          <SheetContent side="left" className="w-72 gap-6 p-4">
+          <SheetContent side="left" className="w-72 gap-6 p-4" onOpenAutoFocus={(e) => e.preventDefault()}>
             <SheetHeader className="p-0">
               <SheetTitle>
                 <Brand />

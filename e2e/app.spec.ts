@@ -91,6 +91,8 @@ test.describe('mobile', () => {
       ['Agenda', /#\/$/],
     ] as const) {
       await page.getByRole('button', { name: 'Menu' }).click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      expect(await page.evaluate(() => (document.activeElement as HTMLInputElement | null)?.type)).not.toBe('date')
       await page.getByRole('dialog').getByRole('link', { name: link }).click()
       await expect(page).toHaveURL(url)
       await expect(page.getByRole('dialog')).toBeHidden()
