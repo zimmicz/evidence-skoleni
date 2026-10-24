@@ -57,7 +57,7 @@ test('overview heatmap links to filtered employee list', async ({ page }) => {
     .first()
     .click()
   await expect(page).toHaveURL(/department=Knihovna/)
-  await expect(page.getByText(/\d+ zaměstnanců/)).toBeVisible()
+  await expect(page.getByText(/^\d+ zaměstna(nec|nci|nců) odpovíd(á|ají) filtrům$/)).toBeVisible()
 })
 
 test('import accepts known exports and rejects unknown files', async ({ page }) => {

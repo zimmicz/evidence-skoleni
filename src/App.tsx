@@ -26,7 +26,10 @@ import { Employees } from './pages/Employees'
 import { EmployeeDetail } from './pages/EmployeeDetail'
 import { Sessions } from './pages/Sessions'
 import { DataQuality } from './pages/DataQuality'
+import { plural, pluralWord } from './domain/plural'
 import { FILE_LABELS, type FileKind } from './domain/types'
+
+const UNRESOLVED = { one: 'nevyřešená nesrovnalost', few: 'nevyřešené nesrovnalosti', other: 'nevyřešených nesrovnalostí' }
 
 function ImportSummary() {
   const { report, resolutions, summaryOpen, setSummaryOpen, fileNames, ready } = useStore()
@@ -50,15 +53,23 @@ function ImportSummary() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-lg border p-3">
             <div className="text-2xl font-semibold tabular-nums">{report.normalizations.length}</div>
-            <div className="text-xs text-muted-foreground">automaticky očištěných hodnot</div>
+            <div className="text-xs text-muted-foreground">
+              {pluralWord(report.normalizations.length, {
+                one: 'automaticky očištěná hodnota',
+                few: 'automaticky očištěné hodnoty',
+                other: 'automaticky očištěných hodnot',
+              })}
+            </div>
           </div>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
             <div className="text-2xl font-semibold text-amber-700 tabular-nums">{unresolved.length}</div>
-            <div className="text-xs text-muted-foreground">nevyřešených nesrovnalostí</div>
+            <div className="text-xs text-muted-foreground">{pluralWord(unresolved.length, UNRESOLVED)}</div>
           </div>
           <div className="rounded-lg border border-red-200 bg-red-50 p-3">
             <div className="text-2xl font-semibold text-red-700 tabular-nums">{report.rejected.length}</div>
-            <div className="text-xs text-muted-foreground">odmítnutých řádků</div>
+            <div className="text-xs text-muted-foreground">
+              {pluralWord(report.rejected.length, { one: 'odmítnutý řádek', few: 'odmítnuté řádky', other: 'odmítnutých řádků' })}
+            </div>
           </div>
         </div>
         {unresolved.length > 0 && (
@@ -222,7 +233,7 @@ function Layout() {
           {unresolved > 0 && (
             <Alert className="border-amber-200 bg-amber-50 text-amber-900">
               <AlertTriangle />
-              <AlertTitle>{unresolved} nevyřešených nesrovnalostí v datech</AlertTitle>
+              <AlertTitle>{plural(unresolved, UNRESOLVED)} v datech</AlertTitle>
               <AlertDescription className="text-amber-800">
                 <span>
                   Výsledky mohou být neúplné.{' '}

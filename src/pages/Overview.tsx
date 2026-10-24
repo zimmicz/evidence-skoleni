@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '../domain/dates'
+import { plural } from '../domain/plural'
 import { useStore } from '../state'
 import { EmployeeLink, PageHeader, Stat, StatusBadge, ToneBadge } from '../ui/components'
 
@@ -34,7 +35,12 @@ export function Overview() {
         <Stat label="Splněné povinnosti" value={`${pct(ok, requirements.length)} %`} tone="green" icon={<CheckCircle2 />} />
         <Stat label="Nikdy neabsolvováno" value={count('missing')} tone="red" icon={<UserX />} />
         <Stat label="Prošlá platnost" value={count('expired')} tone="red" icon={<Hourglass />} />
-        <Stat label={`Končí do ${windowDays} dní`} value={count('expiring')} tone="amber" icon={<Clock />} />
+        <Stat
+          label={`Končí do ${plural(windowDays, { one: 'dne', few: 'dní', other: 'dní' })}`}
+          value={count('expiring')}
+          tone="amber"
+          icon={<Clock />}
+        />
         <Stat
           label="Nelze umístit na termín"
           value={plan.unplaceable.length}

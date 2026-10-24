@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { RequirementStatus } from '../domain/compliance'
 import { formatDate } from '../domain/dates'
+import { plural } from '../domain/plural'
 import { fold } from '../domain/import'
 import { EMPLOYMENT_STATUSES, type Employee } from '../domain/types'
 import { useStore } from '../state'
@@ -80,7 +81,10 @@ export function Employees() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Zaměstnanci" description={`${rows.length} zaměstnanců odpovídá filtrům`} />
+      <PageHeader
+        title="Zaměstnanci"
+        description={`${plural(rows.length, { one: 'zaměstnanec odpovídá', few: 'zaměstnanci odpovídají', other: 'zaměstnanců odpovídá' })} filtrům`}
+      />
       <Card size="sm">
         <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <label className="flex flex-col gap-1 text-muted-foreground">

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { plural } from '../domain/plural'
 import { FILE_LABELS, type FileKind, type Inconsistency, type Normalization } from '../domain/types'
 import { useStore } from '../state'
 import { PageHeader, ToneBadge } from '../ui/components'
@@ -27,7 +28,7 @@ function IssueCard({ issue }: { issue: Inconsistency }) {
       <Collapsible>
         <CollapsibleTrigger className="group flex items-center gap-1 text-muted-foreground hover:text-foreground">
           <ChevronDown className="size-3.5 transition group-data-[state=open]:rotate-180" />
-          {issue.rows.length} {issue.rows.length === 1 ? 'záznam' : 'záznamů'}
+          {plural(issue.rows.length, { one: 'záznam', few: 'záznamy', other: 'záznamů' })}
         </CollapsibleTrigger>
         <CollapsibleContent>
           <p className="mt-1 break-words text-muted-foreground">{issue.rows.join(', ')}</p>
@@ -111,8 +112,9 @@ export function DataQuality() {
         <TabsContent value="issues" className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-3xl text-sm text-muted-foreground">
-              {unresolved.length} nevyřešených z {report.inconsistencies.length}. Opravit na = hodnota se nahradí ve všech uvedených
-              záznamech. Vyřadit = záznamy se nepoužijí. Ponechat jak je = záznamy se použijí s původní hodnotou.
+              {plural(unresolved.length, { one: 'nevyřešená', few: 'nevyřešené', other: 'nevyřešených' })} z {report.inconsistencies.length}
+              . Opravit na = hodnota se nahradí ve všech uvedených záznamech. Vyřadit = záznamy se nepoužijí. Ponechat jak je = záznamy se
+              použijí s původní hodnotou.
             </p>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" className="size-4 accent-primary" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />

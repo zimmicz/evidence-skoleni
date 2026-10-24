@@ -44,6 +44,8 @@ Pure pipeline in `src/domain/` (no React), all unit-tested against the real `dat
 
 `src/state.tsx` — single React context: sample CSVs fetched with TanStack Query (`?url` imports of `data/*.csv`), persisted state (imported file texts, resolutions, bookings, settings) validated with Zod on load from localStorage and saved on every update; derived dataset/compliance/plan via `useMemo`.
 
+Every count shown with a Czech noun goes through `plural()` / `pluralWord()` in `src/domain/plural.ts` (`Intl.PluralRules('cs')`: 1 člověk, 2–4 lidé, 5+ lidí).
+
 UI: `src/pages/*` (Přehled, Zaměstnanci + detail, Termíny, Kvalita dat), `src/ui/forms.tsx` (react-hook-form + Zod: import, resolution, move booking), Tailwind only. Czech-only UI.
 
 ## Data facts

@@ -1,6 +1,10 @@
 import type { BookingPlan } from './booking'
 import { addDays, formatDate, type IsoDate } from './dates'
+import { plural } from './plural'
 import type { Dataset } from './types'
+
+const ISSUES = { one: 'nesrovnalost', few: 'nesrovnalosti', other: 'nesrovnalostí' }
+const SUGGESTIONS = { one: 'návrh', few: 'návrhy', other: 'návrhů' }
 
 export type Priority = 'high' | 'medium' | 'low'
 
@@ -32,7 +36,7 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
     tasks.push({
       id: 'data',
       priority: 'high',
-      title: `Rozhodnout ${unresolvedIssues} nesrovnalostí v datech`,
+      title: `Rozhodnout ${plural(unresolvedIssues, ISSUES)} v datech`,
       detail: 'Dokud nejsou vyřešené, dotčené záznamy se nezapočítávají a přehledy mohou být neúplné.',
       link: '/data-quality',
     })
@@ -41,7 +45,7 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
     tasks.push({
       id: `unplaceable:${code}`,
       priority: 'high',
-      title: `Vypsat další termín ${code}: ${n} lidí nemá kam se přihlásit`,
+      title: `Vypsat další termín ${code}: ${plural(n, { one: 'člověk nemá', few: 'lidé nemají', other: 'lidí nemá' })} kam se přihlásit`,
       detail: `${names.get(code) ?? code} – na vypsaných termínech už není volné místo.`,
       link: '/sessions',
     })
@@ -58,7 +62,7 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
         tasks.push({
           id: `confirm:${s.id}`,
           priority: 'high',
-          title: `Potvrdit přihlášky na ${s.code} ${formatDate(s.date)}: ${suggested} návrhů`,
+          title: `Potvrdit přihlášky na ${s.code} ${formatDate(s.date)}: ${plural(suggested, SUGGESTIONS)}`,
           detail: `${s.id}, ${s.time}, ${s.place} – termín je do ${SOON_DAYS} dní.`,
           link: `/sessions?session=${s.id}`,
           date: s.date,
@@ -67,7 +71,7 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
         tasks.push({
           id: `notify:${s.id}`,
           priority: 'low',
-          title: `Rozeslat pozvánky na ${s.code} ${formatDate(s.date)}: ${confirmed} potvrzených`,
+          title: `Rozeslat pozvánky na ${s.code} ${formatDate(s.date)}: ${plural(confirmed, { one: 'potvrzená přihláška', few: 'potvrzené přihlášky', other: 'potvrzených přihlášek' })}`,
           detail: `${s.id}, ${s.time}, ${s.place} – e-maily a seznam pro pořadatele najdete u termínu.`,
           link: `/sessions?session=${s.id}`,
           date: s.date,
@@ -81,7 +85,7 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
     tasks.push({
       id: 'confirm:later',
       priority: 'medium',
-      title: `Potvrdit ${laterSuggestions} návrhů na ${laterSessions} pozdějších termínech`,
+      title: `Potvrdit ${plural(laterSuggestions, SUGGESTIONS)} na ${plural(laterSessions, { one: 'pozdějším termínu', few: 'pozdějších termínech', other: 'pozdějších termínech' })}`,
       detail: 'Potvrzená přihláška drží místo a při přepočtu se nemění.',
       link: '/sessions',
     })
@@ -93,7 +97,7 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
     tasks.push({
       id: `late:${code}`,
       priority: 'medium',
-      title: `${code}: ${n} lidem skončí platnost dřív, než se dostanou na termín`,
+      title: `${code}: ${plural(n, { one: 'člověku skončí platnost dřív, než se dostane', few: 'lidem skončí platnost dřív, než se dostanou', other: 'lidem skončí platnost dřív, než se dostanou' })} na termín`,
       detail: `${names.get(code) ?? code} – zvažte dřívější termín nebo navýšení kapacity.`,
       link: `/employees?training=${code}&status=expiring`,
     })
