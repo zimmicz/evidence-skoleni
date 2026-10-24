@@ -1,91 +1,67 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { STATUS_LABELS, type RequirementStatus } from '../domain/compliance'
 import type { Employee } from '../domain/types'
 
-const STATUS_STYLES: Record<RequirementStatus, string> = {
-  missing: 'bg-red-100 text-red-800 ring-red-200',
-  expired: 'bg-red-100 text-red-800 ring-red-200',
-  expiring: 'bg-amber-100 text-amber-800 ring-amber-200',
-  valid: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
+export type Tone = 'gray' | 'red' | 'amber' | 'green' | 'blue'
+
+const TONES: Record<Tone, string> = {
+  gray: 'bg-slate-100 text-slate-700',
+  red: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200',
+  amber: 'bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200',
+  green: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
+  blue: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200',
 }
 
-export function Badge({ children, tone = 'gray' }: { children: ReactNode; tone?: 'gray' | 'red' | 'amber' | 'green' | 'blue' }) {
-  const tones = {
-    gray: 'bg-slate-100 text-slate-700 ring-slate-200',
-    red: 'bg-red-100 text-red-800 ring-red-200',
-    amber: 'bg-amber-100 text-amber-800 ring-amber-200',
-    green: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
-    blue: 'bg-sky-100 text-sky-800 ring-sky-200',
-  }
-  return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${tones[tone]}`}>
-      {children}
-    </span>
-  )
+const STATUS_TONES: Record<RequirementStatus, Tone> = { missing: 'red', expired: 'red', expiring: 'amber', valid: 'green' }
+
+export function ToneBadge({ children, tone = 'gray', className }: { children: ReactNode; tone?: Tone; className?: string }) {
+  return <Badge className={cn('rounded-md font-medium', TONES[tone], className)}>{children}</Badge>
 }
 
 export function StatusBadge({ status }: { status: RequirementStatus }) {
-  return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[status]}`}>
-      {STATUS_LABELS[status]}
-    </span>
-  )
+  return <ToneBadge tone={STATUS_TONES[status]}>{STATUS_LABELS[status]}</ToneBadge>
 }
 
 export function EmployeeLink({ employee }: { employee: Employee | undefined }) {
   if (!employee) return <span>—</span>
   return (
-    <Link className="text-sky-700 hover:underline" to={`/employees/${employee.id}`}>
+    <Link className="font-medium text-primary hover:underline" to={`/employees/${employee.id}`}>
       {employee.lastName} {employee.firstName}
     </Link>
   )
 }
 
-export function Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null)
-  const titleId = useId()
-  useEffect(() => {
-    const d = ref.current
-    if (!d) return
-    if (open && !d.open) d.showModal()
-    if (!open && d.open) d.close()
-  }, [open])
+export function Stat({ label, value, tone, icon }: { label: string; value: ReactNode; tone?: 'red' | 'amber' | 'green'; icon: ReactNode }) {
+  const color =
+    tone === 'red' ? 'text-red-600' : tone === 'amber' ? 'text-amber-600' : tone === 'green' ? 'text-emerald-600' : 'text-foreground'
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      aria-labelledby={titleId}
-      className="m-auto w-full max-w-2xl rounded-lg p-0 shadow-xl backdrop:bg-slate-900/40"
-    >
-      <div className="p-5">
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id={titleId} className="text-lg font-semibold">
-            {title}
-          </h2>
-          <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-800" aria-label="Zavřít dialog">
-            ✕
-          </button>
+    <Card size="sm">
+      <CardContent className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-xs text-muted-foreground">{label}</div>
+          <div className={cn('mt-1 text-2xl font-semibold tabular-nums', color)}>{value}</div>
         </div>
-        {children}
-      </div>
-    </dialog>
+        <div className="rounded-lg bg-muted p-2 text-muted-foreground [&_svg]:size-4">{icon}</div>
+      </CardContent>
+    </Card>
   )
 }
 
-export function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: 'red' | 'amber' | 'green' }) {
-  const color =
-    tone === 'red' ? 'text-red-700' : tone === 'amber' ? 'text-amber-700' : tone === 'green' ? 'text-emerald-700' : 'text-slate-900'
+export function PageHeader({ title, description, children }: { title: string; description?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${color}`}>{value}</div>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      </div>
+      {children}
     </div>
   )
 }
 
-export const buttonClass =
-  'inline-flex items-center rounded border border-slate-300 bg-white px-2.5 py-1 text-sm hover:bg-slate-50 disabled:opacity-50'
-export const primaryButtonClass =
-  'inline-flex items-center rounded bg-sky-700 px-2.5 py-1 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-50'
-export const inputClass = 'rounded border border-slate-300 bg-white px-2 py-1 text-sm'
+export const controlClass =
+  'h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'

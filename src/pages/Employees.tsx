@@ -1,10 +1,14 @@
 import { useSearchParams } from 'react-router'
+import { Search } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Card, CardContent } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { RequirementStatus } from '../domain/compliance'
 import { formatDate } from '../domain/dates'
 import { fold } from '../domain/import'
 import { EMPLOYMENT_STATUSES, type Employee } from '../domain/types'
 import { useStore } from '../state'
-import { Badge, EmployeeLink, inputClass, StatusBadge } from '../ui/components'
+import { EmployeeLink, PageHeader, StatusBadge, ToneBadge, controlClass } from '../ui/components'
 
 const PROBLEM: RequirementStatus[] = ['missing', 'expired', 'expiring']
 const DEFAULT_EMPLOYMENT = 'aktivní,rodičovská'
@@ -63,134 +67,146 @@ export function Employees() {
     .filter(({ relevant }) => (training || status ? relevant.some((r) => matchesStatus(r.status)) : true))
     .sort((a, b) => a.e.lastName.localeCompare(b.e.lastName, 'cs') || a.e.firstName.localeCompare(b.e.firstName, 'cs'))
 
+  const statusBadge = (e: Employee) =>
+    e.status === 'aktivní' ? (
+      <ToneBadge tone="green">aktivní</ToneBadge>
+    ) : e.status === 'rodičovská' ? (
+      <ToneBadge tone="blue">rodičovská</ToneBadge>
+    ) : e.status === 'ukončen' ? (
+      <ToneBadge>ukončen</ToneBadge>
+    ) : (
+      <ToneBadge tone="red">neznámý</ToneBadge>
+    )
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-        <label className="flex flex-col">
-          Hledat
-          <input className={inputClass} value={q} onChange={(e) => set('q', e.target.value)} placeholder="jméno nebo ID" />
-        </label>
-        <label className="flex flex-col">
-          Útvar
-          <select className={inputClass} value={department} onChange={(e) => set('department', e.target.value)}>
-            <option value="">všechny</option>
-            {departments.map((d) => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col">
-          Tým vedoucího
-          <select className={inputClass} value={manager} onChange={(e) => set('manager', e.target.value)}>
-            <option value="">všichni</option>
-            {managers.map((m) => (
-              <option key={m.id} value={m.email}>
-                {m.lastName} {m.firstName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col">
-          Školení
-          <select className={inputClass} value={training} onChange={(e) => set('training', e.target.value)}>
-            <option value="">všechna povinná</option>
-            {dataset.trainings
-              .filter((t) => t.rule.kind !== 'optional')
-              .map((t) => (
-                <option key={t.code} value={t.code}>
-                  {t.code} – {t.name}
+    <div className="space-y-6">
+      <PageHeader title="Zaměstnanci" description={`${rows.length} zaměstnanců odpovídá filtrům`} />
+      <Card size="sm">
+        <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <label className="flex flex-col gap-1 text-muted-foreground">
+            Hledat
+            <span className="relative">
+              <Search className="absolute top-2 left-2.5 size-4 text-muted-foreground" />
+              <input
+                className={cn(controlClass, 'w-full pl-8 text-foreground')}
+                value={q}
+                onChange={(e) => set('q', e.target.value)}
+                placeholder="jméno nebo ID"
+              />
+            </span>
+          </label>
+          <label className="flex flex-col gap-1 text-muted-foreground">
+            Útvar
+            <select className={cn(controlClass, 'text-foreground')} value={department} onChange={(e) => set('department', e.target.value)}>
+              <option value="">všechny</option>
+              {departments.map((d) => (
+                <option key={d}>{d}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-muted-foreground">
+            Tým vedoucího
+            <select className={cn(controlClass, 'text-foreground')} value={manager} onChange={(e) => set('manager', e.target.value)}>
+              <option value="">všichni</option>
+              {managers.map((m) => (
+                <option key={m.id} value={m.email}>
+                  {m.lastName} {m.firstName}
                 </option>
               ))}
-          </select>
-        </label>
-        <label className="flex flex-col">
-          Stav povinnosti
-          <select className={inputClass} value={status} onChange={(e) => set('status', e.target.value)}>
-            <option value="">jakýkoli</option>
-            <option value="problem">vyžaduje akci</option>
-            <option value="missing">chybí</option>
-            <option value="expired">prošlé</option>
-            <option value="expiring">končí</option>
-            <option value="valid">platné</option>
-          </select>
-        </label>
-        <fieldset className="flex flex-col">
-          <legend>Pracovní poměr</legend>
-          <div className="flex gap-2 py-1">
-            {EMPLOYMENT_STATUSES.map((s) => (
-              <label key={s} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={employment.includes(s)}
-                  onChange={(e) =>
-                    set('employment', (e.target.checked ? [...employment, s] : employment.filter((x) => x !== s)).join(',') || 'none')
-                  }
-                />
-                {s}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </div>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-muted-foreground">
+            Školení
+            <select className={cn(controlClass, 'text-foreground')} value={training} onChange={(e) => set('training', e.target.value)}>
+              <option value="">všechna povinná</option>
+              {dataset.trainings
+                .filter((t) => t.rule.kind !== 'optional')
+                .map((t) => (
+                  <option key={t.code} value={t.code}>
+                    {t.code} – {t.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-muted-foreground">
+            Stav povinnosti
+            <select className={cn(controlClass, 'text-foreground')} value={status} onChange={(e) => set('status', e.target.value)}>
+              <option value="">jakýkoli</option>
+              <option value="problem">vyžaduje akci</option>
+              <option value="missing">chybí</option>
+              <option value="expired">prošlé</option>
+              <option value="expiring">končí</option>
+              <option value="valid">platné</option>
+            </select>
+          </label>
+          <fieldset className="flex flex-col gap-1 text-muted-foreground">
+            <legend className="mb-1">Pracovní poměr</legend>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-foreground">
+              {EMPLOYMENT_STATUSES.map((s) => (
+                <label key={s} className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-primary"
+                    checked={employment.includes(s)}
+                    onChange={(e) =>
+                      set('employment', (e.target.checked ? [...employment, s] : employment.filter((x) => x !== s)).join(',') || 'none')
+                    }
+                  />
+                  {s}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </CardContent>
+      </Card>
 
-      <p className="text-sm text-slate-500">{rows.length} zaměstnanců</p>
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
-            <tr>
-              <th className="p-2">Jméno</th>
-              <th className="p-2">Útvar</th>
-              <th className="p-2">Pozice</th>
-              <th className="p-2">Poměr</th>
-              <th className="p-2">{training ? training : 'Povinnosti'}</th>
-              <th className="p-2">Nejbližší konec platnosti</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="py-0">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead className="pl-4">Jméno</TableHead>
+              <TableHead>Útvar</TableHead>
+              <TableHead>Pozice</TableHead>
+              <TableHead>Poměr</TableHead>
+              <TableHead>{training ? training : 'Povinnosti'}</TableHead>
+              <TableHead className="pr-4">Nejbližší konec platnosti</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map(({ e, reqs, relevant }) => {
               const n = (s: RequirementStatus) => relevant.filter((r) => r.status === s).length
               const nearest = reqs.filter((r) => r.validUntil).sort((a, b) => (a.validUntil ?? '').localeCompare(b.validUntil ?? ''))[0]
               return (
-                <tr key={e.id} className="border-t border-slate-100">
-                  <td className="p-2">
+                <TableRow key={e.id}>
+                  <TableCell className="pl-4">
                     <EmployeeLink employee={e} />
-                  </td>
-                  <td className="p-2">{e.department ?? '—'}</td>
-                  <td className="p-2">{e.position ?? '—'}</td>
-                  <td className="p-2">
-                    {e.status === 'aktivní' ? (
-                      <Badge tone="green">aktivní</Badge>
-                    ) : e.status === 'rodičovská' ? (
-                      <Badge tone="blue">rodičovská</Badge>
-                    ) : e.status === 'ukončen' ? (
-                      <Badge>ukončen</Badge>
-                    ) : (
-                      <Badge tone="red">neznámý</Badge>
-                    )}
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell>{e.department ?? '—'}</TableCell>
+                  <TableCell>{e.position ?? '—'}</TableCell>
+                  <TableCell>{statusBadge(e)}</TableCell>
+                  <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {training ? (
                         relevant.map((r) => <StatusBadge key={r.code} status={r.status} />)
                       ) : (
                         <>
-                          {n('missing') > 0 && <Badge tone="red">chybí {n('missing')}</Badge>}
-                          {n('expired') > 0 && <Badge tone="red">prošlé {n('expired')}</Badge>}
-                          {n('expiring') > 0 && <Badge tone="amber">končí {n('expiring')}</Badge>}
-                          {n('missing') + n('expired') + n('expiring') === 0 && <Badge tone="green">vše platné</Badge>}
+                          {n('missing') > 0 && <ToneBadge tone="red">chybí {n('missing')}</ToneBadge>}
+                          {n('expired') > 0 && <ToneBadge tone="red">prošlé {n('expired')}</ToneBadge>}
+                          {n('expiring') > 0 && <ToneBadge tone="amber">končí {n('expiring')}</ToneBadge>}
+                          {n('missing') + n('expired') + n('expiring') === 0 && <ToneBadge tone="green">vše platné</ToneBadge>}
                         </>
                       )}
                     </div>
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="pr-4 tabular-nums">
                     {training ? formatDate(relevant[0]?.validUntil) : nearest ? `${formatDate(nearest.validUntil)} (${nearest.code})` : '—'}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   )
 }

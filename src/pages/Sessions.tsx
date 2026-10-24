@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { CalendarX, Check, ChevronDown, Clock, Copy, Download, MapPin, X } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import type { Booking } from '../domain/booking'
 import { STATUS_LABELS } from '../domain/compliance'
 import { formatDate } from '../domain/dates'
 import { toCsv } from '../domain/export'
 import type { Session } from '../domain/types'
 import { useStore } from '../state'
-import { Badge, buttonClass, EmployeeLink, primaryButtonClass, StatusBadge } from '../ui/components'
+import { EmployeeLink, PageHeader, StatusBadge, ToneBadge } from '../ui/components'
 import { MoveForm } from '../ui/forms'
 
 function download(name: string, content: string) {
@@ -32,13 +36,13 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
 
   const state =
     session.status === 'zrušeno' ? (
-      <Badge>zrušeno</Badge>
+      <ToneBadge>zrušeno</ToneBadge>
     ) : session.date < referenceDate ? (
-      <Badge>proběhlo</Badge>
+      <ToneBadge>proběhlo</ToneBadge>
     ) : session.blocked ? (
-      <Badge tone="red">{session.blocked}</Badge>
+      <ToneBadge tone="red">{session.blocked}</ToneBadge>
     ) : (
-      <Badge tone={free > 0 ? 'green' : 'amber'}>volno po návrzích {free}</Badge>
+      <ToneBadge tone={free > 0 ? 'green' : 'amber'}>volno po návrzích {free}</ToneBadge>
     )
 
   const exportCsv = () => {
@@ -56,106 +60,114 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
   }
 
   return (
-    <details
-      className="rounded-lg border border-slate-200 bg-white"
+    <Collapsible
+      defaultOpen={initiallyOpen}
+      disabled={!offered}
       data-testid={`session-${session.id}`}
-      open={initiallyOpen || undefined}
-      ref={(el) => {
+      className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 data-[state=open]:ring-primary/30"
+      ref={(el: HTMLDivElement | null) => {
         if (el && initiallyOpen) el.scrollIntoView({ block: 'center' })
       }}
     >
-      <summary className="flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 p-3 text-sm">
-        <span className="font-medium">{session.id}</span>
-        <span>{formatDate(session.date)}</span>
-        <span>{session.time}</span>
-        <span>{session.place}</span>
-        <span className="text-slate-500">
+      <CollapsibleTrigger className="group flex w-full flex-wrap items-center gap-x-4 gap-y-1.5 p-3 text-left text-sm enabled:hover:bg-muted/50 disabled:cursor-default">
+        <span className="flex items-center gap-2">
+          <span className="font-semibold">{session.id}</span>
+          <span className="font-medium tabular-nums">{formatDate(session.date)}</span>
+        </span>
+        <span className="flex items-center gap-1 text-muted-foreground">
+          <Clock className="size-3.5" />
+          {session.time}
+        </span>
+        <span className="flex items-center gap-1 text-muted-foreground">
+          <MapPin className="size-3.5" />
+          {session.place}
+        </span>
+        <span className="text-muted-foreground tabular-nums">
           kapacita {session.capacity}, obsazeno z exportu {session.taken}
         </span>
         {offered && (
-          <span className="text-slate-500">
+          <span className="text-muted-foreground tabular-nums">
             potvrzeno {confirmed.length}, návrhů {suggested.length}
           </span>
         )}
-        {state}
-      </summary>
+        <span className="ml-auto flex items-center gap-2">
+          {state}
+          {offered && <ChevronDown className="size-4 text-muted-foreground transition group-data-[state=open]:rotate-180" />}
+        </span>
+      </CollapsibleTrigger>
       {offered && (
-        <div className="space-y-3 border-t border-slate-100 p-3">
+        <CollapsibleContent className="space-y-3 border-t p-3">
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={primaryButtonClass}
+            <Button
+              size="sm"
               disabled={!suggested.length}
               onClick={() => suggested.forEach((b) => confirm(b.employeeId, b.code, b.sessionId))}
             >
+              <Check />
               Potvrdit všechny návrhy
-            </button>
-            <button type="button" className={buttonClass} disabled={!attendees.length} onClick={exportCsv}>
+            </Button>
+            <Button size="sm" variant="outline" disabled={!attendees.length} onClick={exportCsv}>
+              <Download />
               Export CSV
-            </button>
-            <button type="button" className={buttonClass} disabled={!attendees.length} onClick={copyEmails}>
+            </Button>
+            <Button size="sm" variant="outline" disabled={!attendees.length} onClick={copyEmails}>
+              <Copy />
               {copied ? 'Zkopírováno' : 'Kopírovat e-maily'}
-            </button>
+            </Button>
           </div>
           {attendees.length === 0 ? (
-            <p className="text-sm text-slate-500">Nikdo k přihlášení.</p>
+            <p className="text-sm text-muted-foreground">Nikdo k přihlášení.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-slate-500">
-                <tr>
-                  <th className="py-1">Zaměstnanec</th>
-                  <th>Útvar</th>
-                  <th>Stav povinnosti</th>
-                  <th>Platnost do</th>
-                  <th>Přihláška</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {attendees.map(({ b, confirmed }) => {
-                  const r = requirement(b)
-                  const e = employees.get(b.employeeId)
-                  return (
-                    <tr key={b.employeeId} className="border-t border-slate-100" data-testid={`attendee-${b.employeeId}`}>
-                      <td className="py-1">
-                        <EmployeeLink employee={e} />
-                      </td>
-                      <td>{e?.department ?? '—'}</td>
-                      <td>{r && <StatusBadge status={r.status} />}</td>
-                      <td>
-                        {formatDate(r?.validUntil)} {b.late && <Badge tone="amber">termín až po konci platnosti</Badge>}
-                      </td>
-                      <td>{confirmed ? <Badge tone="green">potvrzeno</Badge> : <Badge tone="blue">návrh</Badge>}</td>
-                      <td className="flex flex-wrap justify-end gap-1 py-1">
-                        {confirmed ? (
-                          <button type="button" className={buttonClass} onClick={() => unconfirm(b.employeeId, b.code)}>
-                            Zrušit potvrzení
-                          </button>
-                        ) : (
-                          <>
-                            <button type="button" className={primaryButtonClass} onClick={() => confirm(b.employeeId, b.code, b.sessionId)}>
-                              Potvrdit
-                            </button>
-                            <MoveForm
-                              sessions={alternatives}
-                              current={session.id}
-                              onSubmit={(sessionId) => confirm(b.employeeId, b.code, sessionId)}
-                            />
-                            <button type="button" className={buttonClass} onClick={() => dismiss(b.employeeId, b.code, b.sessionId)}>
-                              Odebrat
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <ul className="divide-y rounded-lg border">
+              {attendees.map(({ b, confirmed }) => {
+                const r = requirement(b)
+                const e = employees.get(b.employeeId)
+                return (
+                  <li
+                    key={b.employeeId}
+                    className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2.5 text-sm"
+                    data-testid={`attendee-${b.employeeId}`}
+                  >
+                    <span className="min-w-40 flex-1">
+                      <EmployeeLink employee={e} />
+                      <span className="block text-xs text-muted-foreground">{e?.department ?? '—'}</span>
+                    </span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {r && <StatusBadge status={r.status} />}
+                      <span className="text-muted-foreground tabular-nums">platnost do {formatDate(r?.validUntil)}</span>
+                      {b.late && <ToneBadge tone="amber">termín až po konci platnosti</ToneBadge>}
+                      {confirmed ? <ToneBadge tone="green">potvrzeno</ToneBadge> : <ToneBadge tone="blue">návrh</ToneBadge>}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {confirmed ? (
+                        <Button size="sm" variant="outline" onClick={() => unconfirm(b.employeeId, b.code)}>
+                          Zrušit potvrzení
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" onClick={() => confirm(b.employeeId, b.code, b.sessionId)}>
+                            Potvrdit
+                          </Button>
+                          <MoveForm
+                            sessions={alternatives}
+                            current={session.id}
+                            onSubmit={(sessionId) => confirm(b.employeeId, b.code, sessionId)}
+                          />
+                          <Button size="sm" variant="ghost" onClick={() => dismiss(b.employeeId, b.code, b.sessionId)}>
+                            <X />
+                            Odebrat
+                          </Button>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
           )}
-        </div>
+        </CollapsibleContent>
       )}
-    </details>
+    </Collapsible>
   )
 }
 
@@ -165,30 +177,33 @@ export function Sessions() {
   const employees = new Map(dataset.employees.map((e) => [e.id, e]))
   return (
     <div className="space-y-6">
-      <p className="text-sm text-slate-600">
-        Návrhy přihlášek: nejdřív ti, kdo školení nemají vůbec, pak ti s prošlou platností (od nejstarší), pak ti, komu platnost brzy končí.
-        Každý dostane nejbližší termín s volným místem. Potvrzené přihlášky zabírají místo a při přepočtu se nemění.
-      </p>
+      <PageHeader
+        title="Termíny"
+        description="Nejdřív ti, kdo školení nemají vůbec, pak s prošlou platností (od nejstarší), pak ti, komu brzy končí. Každý dostane nejbližší termín s volným místem; potvrzené přihlášky drží místo."
+      />
       {plan.unplaceable.length > 0 && (
-        <section className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <h2 className="mb-2 font-semibold text-red-900">Nelze umístit ({plan.unplaceable.length})</h2>
-          <p className="mb-2 text-sm text-red-900">Pro tyto povinnosti není žádný vypsaný termín s volným místem.</p>
-          <ul className="grid gap-1 text-sm md:grid-cols-2">
-            {plan.unplaceable.map((r) => (
-              <li key={`${r.employeeId}|${r.code}`}>
-                <EmployeeLink employee={employees.get(r.employeeId)} /> – {r.code} ({STATUS_LABELS[r.status]})
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Alert variant="destructive" className="border-red-200 bg-red-50">
+          <CalendarX />
+          <AlertTitle>Nelze umístit ({plan.unplaceable.length})</AlertTitle>
+          <AlertDescription>
+            <p>Pro tyto povinnosti není žádný vypsaný termín s volným místem.</p>
+            <ul className="mt-1 grid gap-1 md:grid-cols-2">
+              {plan.unplaceable.map((r) => (
+                <li key={`${r.employeeId}|${r.code}`}>
+                  <EmployeeLink employee={employees.get(r.employeeId)} /> – {r.code} ({STATUS_LABELS[r.status]})
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       )}
       {dataset.trainings
         .filter((t) => dataset.sessions.some((s) => s.code === t.code))
         .map((t) => (
           <section key={t.code} className="space-y-2">
-            <h2 className="font-semibold">
-              {t.code} – {t.name}
-            </h2>
+            <h3 className="font-semibold">
+              {t.code} <span className="font-normal text-muted-foreground">– {t.name}</span>
+            </h3>
             {dataset.sessions
               .filter((s) => s.code === t.code)
               .sort((a, b) => a.date.localeCompare(b.date))

@@ -65,20 +65,41 @@ class Context {
 
 type Row = { key: string; get: (field: string) => string }
 
+function comparable(cell: string): string {
+  const date = parseDate(cell)
+  return date.ok ? date.value : collapse(cell).toLocaleLowerCase('cs')
+}
+
 function readRows(file: FileKind, table: CsvTable, ctx: Context, keyPattern: RegExp): Row[] {
   const header = HEADERS[file]
-  const seen = new Set<string>()
+  const seen = new Map<string, string>()
   const rows: Row[] = []
   table.rows.forEach((cells, index) => {
     const reject = (reason: string) => ctx.rejected.push({ file, row: index + 2, reason, raw: cells.join(' | ').slice(0, 300) })
     if (cells.length !== header.length) return reject(`Nesprávný počet sloupců (${cells.length} místo ${header.length})`)
     if (cells.filter((c, i) => c.trim() === header[i]).length >= header.length / 2) return reject('Opakovaná hlavička')
     const rawKey = cells[0]
-    const key = rawKey.trim().toUpperCase()
+    let key = rawKey.trim().toUpperCase()
     if (!key) return reject('Chybí identifikátor')
     if (!keyPattern.test(key)) return reject(`Neplatný identifikátor „${rawKey}“`)
-    if (seen.has(key)) return reject(`Duplicitní identifikátor ${key}`)
-    seen.add(key)
+    const content = cells.slice(1).map(comparable).join('|')
+    const original = seen.get(key)
+    if (original === content) return reject(`Duplicitní řádek – shodný obsah jako první výskyt ${key}`)
+    if (original !== undefined) {
+      const r = ctx.flag(
+        {
+          id: `${file}:duplicitni-id:${key}:${index + 2}`,
+          file,
+          field: header[0],
+          value: cells.join(' | ').slice(0, 300),
+          message: `Stejné ID ${key} jako jiný řádek, ale jiný obsah`,
+          actions: ['ignore', 'exclude'],
+        },
+        `${key} (řádek ${index + 2})`,
+      )
+      if (r?.action !== 'ignore') return
+      key = `${key}~${index + 2}`
+    } else seen.set(key, content)
     ctx.normalize(file, key, header[0], rawKey, key, 'Mezery a velikost písmen v kódu')
     rows.push({ key, get: (field) => cells[header.indexOf(field)] ?? '' })
   })

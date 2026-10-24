@@ -1,7 +1,21 @@
+import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
+import { AlertTriangle, ArrowLeft } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '../domain/dates'
 import { useStore } from '../state'
-import { Badge, EmployeeLink, StatusBadge } from '../ui/components'
+import { EmployeeLink, StatusBadge, ToneBadge } from '../ui/components'
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 break-words">{children}</dd>
+    </div>
+  )
+}
 
 export function EmployeeDetail() {
   const { id } = useParams()
@@ -10,7 +24,10 @@ export function EmployeeDetail() {
   if (!employee) {
     return (
       <p>
-        Zaměstnanec {id} není v datech (mohl být vyřazen nebo sloučen). <Link to="/employees">Zpět na seznam</Link>
+        Zaměstnanec {id} není v datech (mohl být vyřazen nebo sloučen).{' '}
+        <Link to="/employees" className="text-primary underline">
+          Zpět na seznam
+        </Link>
       </p>
     )
   }
@@ -25,156 +42,156 @@ export function EmployeeDetail() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/employees" className="text-sm text-sky-700 hover:underline">
-          ← Zaměstnanci
+        <Link to="/employees" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" />
+          Zaměstnanci
         </Link>
-        <h2 className="mt-1 text-xl font-semibold">
-          {employee.lastName} {employee.firstName} <span className="text-base font-normal text-slate-500">{employee.id}</span>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+          {employee.lastName} {employee.firstName} <span className="text-base font-normal text-muted-foreground">{employee.id}</span>
         </h2>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-white p-4 text-sm md:grid-cols-4">
-        <div>
-          <dt className="text-slate-500">E-mail</dt>
-          <dd>{employee.email}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Útvar</dt>
-          <dd>{employee.department ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Pozice</dt>
-          <dd>{employee.position ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Vedoucí</dt>
-          <dd>{manager ? <EmployeeLink employee={manager} /> : '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Pracovní poměr</dt>
-          <dd>{employee.status ?? 'neznámý'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Nástup</dt>
-          <dd>{formatDate(employee.startDate)}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Ukončení</dt>
-          <dd>{formatDate(employee.endDate)}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Poznámka</dt>
-          <dd className="break-words whitespace-pre-wrap">{employee.note || '—'}</dd>
-        </div>
-      </dl>
+      <Card size="sm">
+        <CardContent>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm min-[420px]:grid-cols-2 md:grid-cols-4">
+            <Field label="E-mail">{employee.email}</Field>
+            <Field label="Útvar">{employee.department ?? '—'}</Field>
+            <Field label="Pozice">{employee.position ?? '—'}</Field>
+            <Field label="Vedoucí">{manager ? <EmployeeLink employee={manager} /> : '—'}</Field>
+            <Field label="Pracovní poměr">{employee.status ?? 'neznámý'}</Field>
+            <Field label="Nástup">{formatDate(employee.startDate)}</Field>
+            <Field label="Ukončení">{formatDate(employee.endDate)}</Field>
+            <Field label="Poznámka">
+              <span className="whitespace-pre-wrap">{employee.note || '—'}</span>
+            </Field>
+          </dl>
+        </CardContent>
+      </Card>
 
       {issues.length > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="mb-1 font-medium">Nesrovnalosti v datech tohoto zaměstnance</p>
-          <ul className="list-inside list-disc">
-            {issues.map((i) => (
-              <li key={i.id}>
-                {i.message} ({i.value}) –{' '}
-                {resolutions[i.id] ? 'vyřešeno' : <Link to={`/data-quality#${encodeURIComponent(i.id)}`}>nevyřešeno</Link>}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+          <AlertTriangle />
+          <AlertTitle>Nesrovnalosti v datech tohoto zaměstnance</AlertTitle>
+          <AlertDescription className="text-amber-800">
+            <ul className="list-inside list-disc">
+              {issues.map((i) => (
+                <li key={i.id}>
+                  {i.message} ({i.value}) –{' '}
+                  {resolutions[i.id] ? (
+                    'vyřešeno'
+                  ) : (
+                    <Link className="underline" to={`/data-quality#${encodeURIComponent(i.id)}`}>
+                      nevyřešeno
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       )}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h3 className="mb-3 font-semibold">Povinná školení</h3>
-        <table className="w-full text-sm">
-          <thead className="text-left text-slate-500">
-            <tr>
-              <th className="py-1">Školení</th>
-              <th>Stav</th>
-              <th>Absolvováno</th>
-              <th>Platnost do</th>
-              <th>Termín</th>
-            </tr>
-          </thead>
-          <tbody>
-            {c?.requirements.map((r) => {
-              const b = bookings.find((x) => x.employeeId === employee.id && x.code === r.code)
-              const s = b && sessions.get(b.sessionId)
-              return (
-                <tr key={r.code} className="border-t border-slate-100">
-                  <td className="py-1">
-                    {r.code} – {trainings.get(r.code)?.name}
-                  </td>
-                  <td>
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td>{formatDate(r.completion?.date)}</td>
-                  <td>{r.completion && !r.validUntil ? 'neomezeně' : formatDate(r.validUntil)}</td>
-                  <td>
-                    {b && s ? (
-                      <span>
-                        {formatDate(s.date)} {s.place}{' '}
-                        {b.confirmed ? <Badge tone="green">potvrzeno</Badge> : <Badge tone="blue">návrh</Badge>}
-                        {b.late && (
-                          <>
-                            {' '}
-                            <Badge tone="amber">po konci platnosti</Badge>
-                          </>
-                        )}
-                      </span>
-                    ) : r.status !== 'valid' && employee.status === 'rodičovská' ? (
-                      <span className="text-slate-500">na rodičovské – nepřihlašuje se</span>
-                    ) : r.status !== 'valid' && plan.unplaceable.includes(r) ? (
-                      <Badge tone="red">nelze umístit</Badge>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Povinná školení</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Školení</TableHead>
+                <TableHead>Stav</TableHead>
+                <TableHead>Absolvováno</TableHead>
+                <TableHead>Platnost do</TableHead>
+                <TableHead>Termín</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {c?.requirements.map((r) => {
+                const b = bookings.find((x) => x.employeeId === employee.id && x.code === r.code)
+                const s = b && sessions.get(b.sessionId)
+                return (
+                  <TableRow key={r.code}>
+                    <TableCell>
+                      {r.code} – {trainings.get(r.code)?.name}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={r.status} />
+                    </TableCell>
+                    <TableCell className="tabular-nums">{formatDate(r.completion?.date)}</TableCell>
+                    <TableCell className="tabular-nums">{r.completion && !r.validUntil ? 'neomezeně' : formatDate(r.validUntil)}</TableCell>
+                    <TableCell>
+                      {b && s ? (
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <span className="tabular-nums">{formatDate(s.date)}</span>
+                          <span className="text-muted-foreground">{s.place}</span>
+                          {b.confirmed ? <ToneBadge tone="green">potvrzeno</ToneBadge> : <ToneBadge tone="blue">návrh</ToneBadge>}
+                          {b.late && <ToneBadge tone="amber">po konci platnosti</ToneBadge>}
+                        </span>
+                      ) : r.status !== 'valid' && employee.status === 'rodičovská' ? (
+                        <span className="text-muted-foreground">na rodičovské – nepřihlašuje se</span>
+                      ) : r.status !== 'valid' && plan.unplaceable.includes(r) ? (
+                        <ToneBadge tone="red">nelze umístit</ToneBadge>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {c && c.extra.length > 0 && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
-          <h3 className="mb-2 font-semibold">Nad rámec povinností</h3>
-          <ul className="text-sm">
-            {c.extra.map((x) => (
-              <li key={x.id}>
-                {x.code} – {trainings.get(x.code)?.name} ({formatDate(x.date)})
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>Nad rámec povinností</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1 text-sm">
+              {c.extra.map((x) => (
+                <li key={x.id}>
+                  {x.code} – {trainings.get(x.code)?.name} <span className="text-muted-foreground">({formatDate(x.date)})</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h3 className="mb-3 font-semibold">Historie absolvovaných školení</h3>
-        <table className="w-full text-sm">
-          <thead className="text-left text-slate-500">
-            <tr>
-              <th className="py-1">Záznam</th>
-              <th>Školení</th>
-              <th>Datum</th>
-              <th>Platnost do</th>
-              <th>Poskytovatel</th>
-              <th>Poznámka</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((x) => (
-              <tr key={x.id} className="border-t border-slate-100 align-top">
-                <td className="py-1">{x.id}</td>
-                <td>{x.code}</td>
-                <td>{formatDate(x.date)}</td>
-                <td>{x.validUntil ? formatDate(x.validUntil) : 'neomezeně'}</td>
-                <td>{x.provider}</td>
-                <td className="whitespace-pre-wrap">{x.note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Historie absolvovaných školení</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Záznam</TableHead>
+                <TableHead>Školení</TableHead>
+                <TableHead>Datum</TableHead>
+                <TableHead>Platnost do</TableHead>
+                <TableHead>Poskytovatel</TableHead>
+                <TableHead>Poznámka</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {history.map((x) => (
+                <TableRow key={x.id} className="align-top">
+                  <TableCell className="text-muted-foreground">{x.id}</TableCell>
+                  <TableCell className="font-medium">{x.code}</TableCell>
+                  <TableCell className="tabular-nums">{formatDate(x.date)}</TableCell>
+                  <TableCell className="tabular-nums">{x.validUntil ? formatDate(x.validUntil) : 'neomezeně'}</TableCell>
+                  <TableCell>{x.provider}</TableCell>
+                  <TableCell className="whitespace-pre-wrap">{x.note}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

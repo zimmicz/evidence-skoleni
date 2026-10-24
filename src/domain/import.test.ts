@@ -74,6 +74,27 @@ describe('sample import', () => {
   })
 })
 
+describe('duplicate identifiers', () => {
+  const withRow = (row: string[]) => ({ ...tables, completions: { ...tables.completions, rows: [...tables.completions.rows, row] } })
+  const conflicting = ['Z000003', 'E0024', 'Blažek Adam', 'GDPR', '2019-01-06', '', 'Interní školitel', '0,00', '']
+
+  test('same content in another format is rejected as a duplicate row', () => {
+    const { report } = build()
+    expect(report.rejected.some((r) => r.reason === 'Duplicitní řádek – shodný obsah jako první výskyt Z000052')).toBe(true)
+    expect(report.inconsistencies.some((i) => i.id.startsWith('completions:duplicitni-id:'))).toBe(false)
+  })
+
+  test('different content becomes an inconsistency and is used only when kept', () => {
+    const unresolved = buildDataset(withRow(conflicting), {}, REF)
+    const issue = unresolved.report.inconsistencies.find((i) => i.id.startsWith('completions:duplicitni-id:Z000003'))
+    expect(issue).toBeDefined()
+    expect(unresolved.dataset.completions.filter((c) => c.id.startsWith('Z000003'))).toHaveLength(1)
+
+    const kept = buildDataset(withRow(conflicting), { [issue!.id]: { action: 'ignore' } }, REF)
+    expect(kept.dataset.completions.filter((c) => c.id.startsWith('Z000003')).map((c) => c.code)).toEqual(['BOZP-Z', 'GDPR'])
+  })
+})
+
 describe('resolutions', () => {
   test('mapping a department applies to all rows and drives requirements', () => {
     const { dataset } = build({ 'employees:utvar:Laboratore': { action: 'map', value: 'Laboratoře' } })

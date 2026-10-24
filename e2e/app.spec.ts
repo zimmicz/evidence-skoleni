@@ -71,3 +71,35 @@ test('import accepts known exports and rejects unknown files', async ({ page }) 
   const summary = page.getByRole('dialog', { name: 'Data načtena – kontrola' })
   await expect(summary).toContainText('terminy_skoleni.csv: terminy_skoleni.csv')
 })
+
+test.describe('mobile', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+  test('pages fit the screen and navigation is reachable', async ({ page }) => {
+    const noHorizontalScroll = async () =>
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    await page.goto('./')
+    await expect(page.getByRole('dialog', { name: 'Data načtena – kontrola' })).toBeVisible()
+    await noHorizontalScroll()
+    await closeSummary(page)
+    await noHorizontalScroll()
+
+    for (const [link, url] of [
+      ['Zaměstnanci', /#\/employees$/],
+      ['Kvalita dat', /#\/data-quality$/],
+      ['Agenda', /#\/$/],
+    ] as const) {
+      await page.getByRole('button', { name: 'Menu' }).click()
+      await page.getByRole('dialog').getByRole('link', { name: link }).click()
+      await expect(page).toHaveURL(url)
+      await expect(page.getByRole('dialog')).toBeHidden()
+      await expect(page.getByRole('heading', { level: 2 })).toBeVisible()
+      await noHorizontalScroll()
+    }
+
+    await page.goto('./#/sessions?session=T015')
+    await expect(page.getByTestId('session-T015').getByRole('button', { name: 'Potvrdit', exact: true })).toBeVisible()
+    await noHorizontalScroll()
+  })
+})

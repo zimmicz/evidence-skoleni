@@ -4,7 +4,8 @@ import { readUpload, type LoadedFile } from '../domain/csv'
 import { formatDate, parseDate } from '../domain/dates'
 import type { Inconsistency, MapTarget, Resolution, ResolutionAction, Session } from '../domain/types'
 import { useStore } from '../state'
-import { buttonClass, inputClass, primaryButtonClass } from './components'
+import { Button } from '@/components/ui/button'
+import { controlClass } from './components'
 import { ACTION_LABELS } from './labels'
 
 const csvFile = z
@@ -34,7 +35,7 @@ export function ImportForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-muted-foreground">
         Vyberte 1–4 exporty (CSV). Typ souboru se pozná podle hlavičky, název nehraje roli. Nevybrané soubory zůstanou beze změny.
       </p>
       <input
@@ -42,7 +43,7 @@ export function ImportForm({ onDone }: { onDone: () => void }) {
         multiple
         accept=".csv,text/csv"
         aria-label="Soubory CSV"
-        className="block w-full text-sm"
+        className="block w-full rounded-lg border border-dashed border-input bg-muted/40 p-3 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
         {...register('files', {
           validate: (list) => {
             if (!list?.length) return 'Vyberte alespoň jeden soubor'
@@ -55,10 +56,10 @@ export function ImportForm({ onDone }: { onDone: () => void }) {
           },
         })}
       />
-      {errors.files && <p className="text-sm text-red-700">{errors.files.message}</p>}
-      <button type="submit" className={primaryButtonClass} disabled={isSubmitting}>
+      {errors.files && <p className="text-sm text-destructive">{errors.files.message}</p>}
+      <Button type="submit" disabled={isSubmitting}>
         Načíst
-      </button>
+      </Button>
     </form>
   )
 }
@@ -88,7 +89,7 @@ export function ResolutionForm({ issue, onSubmit }: { issue: Inconsistency; onSu
 
   return (
     <form onSubmit={submit} className="flex flex-wrap items-center gap-2" aria-label={`Rozhodnutí ${issue.id}`}>
-      <select className={inputClass} aria-label="Akce" {...register('action')}>
+      <select className={controlClass} aria-label="Akce" {...register('action')}>
         {issue.actions.map((a) => (
           <option key={a} value={a}>
             {ACTION_LABELS[a]}
@@ -99,7 +100,7 @@ export function ResolutionForm({ issue, onSubmit }: { issue: Inconsistency; onSu
         <>
           {issue.target?.type === 'select' ? (
             <select
-              className={inputClass}
+              className={controlClass}
               aria-label="Nová hodnota"
               {...register('value', { validate: (v) => valueSchema(issue.target).safeParse(v).error?.issues[0].message ?? true })}
             >
@@ -112,7 +113,7 @@ export function ResolutionForm({ issue, onSubmit }: { issue: Inconsistency; onSu
             </select>
           ) : (
             <input
-              className={inputClass}
+              className={controlClass}
               aria-label="Nová hodnota"
               type={issue.target?.type === 'date' ? 'date' : issue.target?.type === 'number' ? 'number' : 'text'}
               {...register('value', { validate: (v) => valueSchema(issue.target).safeParse(v).error?.issues[0].message ?? true })}
@@ -120,10 +121,10 @@ export function ResolutionForm({ issue, onSubmit }: { issue: Inconsistency; onSu
           )}
         </>
       )}
-      <button type="submit" className={primaryButtonClass}>
+      <Button type="submit" size="sm">
         Uložit
-      </button>
-      {formState.errors.value && <span className="text-sm text-red-700">{formState.errors.value.message}</span>}
+      </Button>
+      {formState.errors.value && <span className="text-sm text-destructive">{formState.errors.value.message}</span>}
     </form>
   )
 }
@@ -132,16 +133,16 @@ export function MoveForm({ sessions, current, onSubmit }: { sessions: Session[];
   const { register, handleSubmit } = useForm<{ sessionId: string }>({ defaultValues: { sessionId: current } })
   return (
     <form onSubmit={handleSubmit(({ sessionId }) => onSubmit(sessionId))} className="flex items-center gap-1">
-      <select className={inputClass} aria-label="Přesunout na termín" {...register('sessionId', { required: true })}>
+      <select className={controlClass} aria-label="Přesunout na termín" {...register('sessionId', { required: true })}>
         {sessions.map((s) => (
           <option key={s.id} value={s.id}>
             {s.id} · {formatDate(s.date)} · {s.place}
           </option>
         ))}
       </select>
-      <button type="submit" className={buttonClass}>
+      <Button type="submit" size="sm" variant="outline">
         Potvrdit sem
-      </button>
+      </Button>
     </form>
   )
 }
