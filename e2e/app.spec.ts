@@ -29,9 +29,13 @@ test('HR resolves an inconsistency, confirms a booking and both survive reload',
   await page.getByTestId('task-confirm:T015').getByRole('link').click()
   await expect(page).toHaveURL(/sessions\?session=T015/)
   const session = page.getByTestId('session-T015')
+  await expect(session.getByTestId('seats')).toHaveText('obsazeno 29 / 30 (29 z exportu + 0 potvrzeno)')
+  await expect(session.getByText('volno 1')).toBeVisible()
   const attendee = session.locator('[data-testid^="attendee-"]').first()
   await attendee.getByRole('button', { name: 'Potvrdit', exact: true }).click()
   await expect(session.getByText('potvrzeno', { exact: true })).toBeVisible()
+  await expect(session.getByTestId('seats')).toHaveText('obsazeno 30 / 30 (29 z exportu + 1 potvrzeno)')
+  await expect(session.getByText('volno 0')).toBeVisible()
 
   await page.reload()
   await closeSummary(page)

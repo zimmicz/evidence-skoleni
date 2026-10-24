@@ -29,7 +29,8 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
   const confirmed = plan.confirmed.filter((b) => b.sessionId === session.id)
   const suggested = plan.suggested.filter((b) => b.sessionId === session.id)
   const offered = plan.offered.some((s) => s.id === session.id)
-  const free = plan.free.get(session.id) ?? 0
+  const taken = session.taken + confirmed.length
+  const seatsFree = Math.max(0, session.capacity - taken)
   const alternatives = plan.offered.filter((s) => s.code === session.code && ((plan.free.get(s.id) ?? 0) > 0 || s.id === session.id))
   const requirement = (b: Booking) => compliance.get(b.employeeId)?.requirements.find((r) => r.code === b.code)
   const attendees = [...confirmed.map((b) => ({ b, confirmed: true })), ...suggested.map((b) => ({ b, confirmed: false }))]
@@ -42,7 +43,7 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
     ) : session.blocked ? (
       <ToneBadge tone="red">{session.blocked}</ToneBadge>
     ) : (
-      <ToneBadge tone={free > 0 ? 'green' : 'amber'}>volno po návrzích {free}</ToneBadge>
+      <ToneBadge tone={seatsFree > 0 ? 'green' : 'amber'}>volno {seatsFree}</ToneBadge>
     )
 
   const exportCsv = () => {
@@ -82,14 +83,11 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
           <MapPin className="size-3.5" />
           {session.place}
         </span>
-        <span className="text-muted-foreground tabular-nums">
-          kapacita {session.capacity}, obsazeno z exportu {session.taken}
+        <span className="text-muted-foreground tabular-nums" data-testid="seats">
+          obsazeno <span className="font-medium text-foreground">{taken}</span> / {session.capacity}
+          {offered && ` (${session.taken} z exportu + ${confirmed.length} potvrzeno)`}
         </span>
-        {offered && (
-          <span className="text-muted-foreground tabular-nums">
-            potvrzeno {confirmed.length}, návrhů {suggested.length}
-          </span>
-        )}
+        {offered && <span className="text-muted-foreground tabular-nums">návrhy {suggested.length}</span>}
         <span className="ml-auto flex items-center gap-2">
           {state}
           {offered && <ChevronDown className="size-4 text-muted-foreground transition group-data-[state=open]:rotate-180" />}
