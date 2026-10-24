@@ -13,7 +13,7 @@ export function Overview() {
   const { dataset, compliance, plan, referenceDate, windowDays } = useStore()
   const employees = new Map(dataset.employees.map((e) => [e.id, e]))
   const inScope = dataset.employees.filter((e) => e.status !== 'ukončen')
-  const requirements = inScope.flatMap((e) => compliance.get(e.id)?.requirements ?? [])
+  const requirements = inScope.flatMap((e) => compliance.get(e.id)?.requirements ?? []).filter((r) => r.status !== 'beforeStart')
   const count = (s: string) => requirements.filter((r) => r.status === s).length
   const ok = count('valid') + count('expiring')
   const mandatory = dataset.trainings.filter((t) => t.rule.kind !== 'optional')
@@ -32,7 +32,7 @@ export function Overview() {
       <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Zaměstnanci (bez ukončených)" value={inScope.length} icon={<Users />} />
         <Stat label="Splněné povinnosti" value={`${pct(ok, requirements.length)} %`} tone="green" icon={<CheckCircle2 />} />
-        <Stat label="Chybí školení" value={count('missing')} tone="red" icon={<UserX />} />
+        <Stat label="Nikdy neabsolvováno" value={count('missing')} tone="red" icon={<UserX />} />
         <Stat label="Prošlá platnost" value={count('expired')} tone="red" icon={<Hourglass />} />
         <Stat label={`Končí do ${windowDays} dní`} value={count('expiring')} tone="amber" icon={<Clock />} />
         <Stat
@@ -67,7 +67,9 @@ export function Overview() {
                   {mandatory.map((t) => {
                     const reqs = inScope
                       .filter((e) => e.department === d)
-                      .flatMap((e) => compliance.get(e.id)?.requirements.filter((r) => r.code === t.code) ?? [])
+                      .flatMap(
+                        (e) => compliance.get(e.id)?.requirements.filter((r) => r.code === t.code && r.status !== 'beforeStart') ?? [],
+                      )
                     if (!reqs.length) return <TableCell key={t.code} />
                     const good = reqs.filter((r) => r.status === 'valid' || r.status === 'expiring').length
                     const p = pct(good, reqs.length)

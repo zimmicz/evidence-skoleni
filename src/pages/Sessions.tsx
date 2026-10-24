@@ -134,7 +134,10 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
                     </span>
                     <span className="flex flex-wrap items-center gap-1.5">
                       {r && <StatusBadge status={r.status} />}
-                      <span className="text-muted-foreground tabular-nums">platnost do {formatDate(r?.validUntil)}</span>
+                      {r?.validUntil && <span className="text-muted-foreground tabular-nums">platnost do {formatDate(r.validUntil)}</span>}
+                      {r?.status === 'beforeStart' && (
+                        <span className="text-muted-foreground tabular-nums">nastupuje {formatDate(e?.startDate)}</span>
+                      )}
                       {b.late && <ToneBadge tone="amber">termín až po konci platnosti</ToneBadge>}
                       {confirmed ? <ToneBadge tone="green">potvrzeno</ToneBadge> : <ToneBadge tone="blue">návrh</ToneBadge>}
                     </span>
@@ -208,7 +211,7 @@ export function Sessions() {
               .filter((s) => s.code === t.code)
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((s) => (
-                <SessionCard key={s.id} session={s} initiallyOpen={s.id === focused} />
+                <SessionCard key={`${s.id}-${focused}`} session={s} initiallyOpen={s.id === focused} />
               ))}
           </section>
         ))}

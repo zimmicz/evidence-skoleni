@@ -5,6 +5,7 @@ import { formatDate, parseDate } from '../domain/dates'
 import type { Inconsistency, MapTarget, Resolution, ResolutionAction, Session } from '../domain/types'
 import { useStore } from '../state'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { controlClass } from './components'
 import { ACTION_LABELS } from './labels'
 
@@ -132,8 +133,12 @@ export function ResolutionForm({ issue, onSubmit }: { issue: Inconsistency; onSu
 export function MoveForm({ sessions, current, onSubmit }: { sessions: Session[]; current: string; onSubmit: (sessionId: string) => void }) {
   const { register, handleSubmit } = useForm<{ sessionId: string }>({ defaultValues: { sessionId: current } })
   return (
-    <form onSubmit={handleSubmit(({ sessionId }) => onSubmit(sessionId))} className="flex items-center gap-1">
-      <select className={controlClass} aria-label="Přesunout na termín" {...register('sessionId', { required: true })}>
+    <form onSubmit={handleSubmit(({ sessionId }) => onSubmit(sessionId))} className="flex max-w-full min-w-0 flex-wrap items-center gap-1">
+      <select
+        className={cn(controlClass, 'w-full max-w-full min-w-0 sm:w-auto')}
+        aria-label="Přesunout na termín"
+        {...register('sessionId', { required: true })}
+      >
         {sessions.map((s) => (
           <option key={s.id} value={s.id}>
             {s.id} · {formatDate(s.date)} · {s.place}

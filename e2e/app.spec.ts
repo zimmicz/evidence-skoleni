@@ -103,5 +103,11 @@ test.describe('mobile', () => {
     await page.goto('./#/sessions?session=T015')
     await expect(page.getByTestId('session-T015').getByRole('button', { name: 'Potvrdit', exact: true })).toBeVisible()
     await noHorizontalScroll()
+
+    await page.goto('./#/sessions?session=T034')
+    const controls = page.getByTestId('session-T034').locator('[data-testid^="attendee-"]').locator('button, select')
+    await expect(controls.first()).toBeVisible()
+    for (const box of await controls.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().right)))
+      expect(box).toBeLessThanOrEqual(390)
   })
 })

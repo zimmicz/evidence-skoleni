@@ -88,6 +88,16 @@ describe('planBookings', () => {
     expect(p.unplaceable.map((r) => r.employeeId)).toEqual(['C'])
   })
 
+  test('future hire is booked only on a session before the start date', () => {
+    const p = plan({
+      ...base,
+      employees: [employee('A', { startDate: '2026-11-01' }), employee('D', { startDate: '2026-10-05' })],
+      completions: [],
+    })
+    expect(p.suggested.map((b) => [b.employeeId, b.sessionId])).toEqual([['A', 'S1']])
+    expect(p.unplaceable.map((r) => [r.employeeId, r.status])).toEqual([['D', 'beforeStart']])
+  })
+
   test('cancelled, blocked and past sessions are not offered', () => {
     const p = plan({
       ...base,
@@ -113,4 +123,14 @@ test('sample: the only October BOZP seat goes to a missing BOZP, expiring ones w
   expect(status(october[0].employeeId)).toBe('missing')
   expect(bozp.some((b) => b.sessionId === 'T018' && b.late && status(b.employeeId) === 'expiring')).toBe(true)
   expect(p.suggested.some((b) => ['T016', 'T017', 'T026', 'T030', 'T009', 'T008'].includes(b.sessionId))).toBe(false)
+})
+
+test('sample: E0095 starting 2. 11. 2026 is before start and never offered the February BOZP session', () => {
+  const { dataset } = buildDataset(loadSample(), {}, REF)
+  const compliance = evaluate(dataset, REF, 90)
+  expect(compliance.get('E0095')?.requirements.find((r) => r.code === 'BOZP-Z')?.status).toBe('beforeStart')
+  const p = planBookings(dataset, compliance, REF, { confirmed: {}, dismissed: {} })
+  const booking = p.suggested.find((b) => b.employeeId === 'E0095' && b.code === 'BOZP-Z')
+  const session = dataset.sessions.find((s) => s.id === booking?.sessionId)
+  expect(!booking || (session && session.date <= '2026-11-02')).toBe(true)
 })

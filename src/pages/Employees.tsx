@@ -10,7 +10,7 @@ import { EMPLOYMENT_STATUSES, type Employee } from '../domain/types'
 import { useStore } from '../state'
 import { EmployeeLink, PageHeader, StatusBadge, ToneBadge, controlClass } from '../ui/components'
 
-const PROBLEM: RequirementStatus[] = ['missing', 'expired', 'expiring']
+const PROBLEM: RequirementStatus[] = ['missing', 'beforeStart', 'expired', 'expiring']
 const DEFAULT_EMPLOYMENT = 'aktivní,rodičovská'
 
 function subordinates(employees: Employee[], managerEmail: string): Set<string> {
@@ -133,7 +133,8 @@ export function Employees() {
             <select className={cn(controlClass, 'text-foreground')} value={status} onChange={(e) => set('status', e.target.value)}>
               <option value="">jakýkoli</option>
               <option value="problem">vyžaduje akci</option>
-              <option value="missing">chybí</option>
+              <option value="missing">nikdy neabsolvováno</option>
+              <option value="beforeStart">před nástupem</option>
               <option value="expired">prošlé</option>
               <option value="expiring">končí</option>
               <option value="valid">platné</option>
@@ -190,10 +191,13 @@ export function Employees() {
                         relevant.map((r) => <StatusBadge key={r.code} status={r.status} />)
                       ) : (
                         <>
-                          {n('missing') > 0 && <ToneBadge tone="red">chybí {n('missing')}</ToneBadge>}
+                          {n('missing') > 0 && <ToneBadge tone="red">nikdy neabsolvováno {n('missing')}</ToneBadge>}
+                          {n('beforeStart') > 0 && <ToneBadge tone="blue">před nástupem {n('beforeStart')}</ToneBadge>}
                           {n('expired') > 0 && <ToneBadge tone="red">prošlé {n('expired')}</ToneBadge>}
                           {n('expiring') > 0 && <ToneBadge tone="amber">končí {n('expiring')}</ToneBadge>}
-                          {n('missing') + n('expired') + n('expiring') === 0 && <ToneBadge tone="green">vše platné</ToneBadge>}
+                          {n('missing') + n('beforeStart') + n('expired') + n('expiring') === 0 && (
+                            <ToneBadge tone="green">vše platné</ToneBadge>
+                          )}
                         </>
                       )}
                     </div>

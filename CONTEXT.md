@@ -74,7 +74,7 @@ A Training an Employee must hold, derived from the Training's rule (everyone, De
 _Avoid_: obligation, mandatory training
 
 **Requirement status**:
-Valid, expiring, expired, or missing (never completed). Expiring means Valid until falls within the Expiring window.
+Valid, expiring, expired, missing (never completed), or before start (never completed, Employee starts after the Reference date). Expiring means Valid until falls within the Expiring window. Before start is not counted in compliance stats; such an Employee is only booked into a Session on or before the start date.
 
 **Expiring window**:
 How far after the Reference date a Valid until counts as expiring. Default 90 days.

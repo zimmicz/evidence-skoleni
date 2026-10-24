@@ -1,10 +1,11 @@
 import { addDays, type IsoDate } from './dates'
 import type { Completion, Dataset, Employee, Training } from './types'
 
-export type RequirementStatus = 'missing' | 'expired' | 'expiring' | 'valid'
+export type RequirementStatus = 'missing' | 'beforeStart' | 'expired' | 'expiring' | 'valid'
 
 export const STATUS_LABELS: Record<RequirementStatus, string> = {
-  missing: 'chybí',
+  missing: 'nikdy neabsolvováno',
+  beforeStart: 'před nástupem',
   expired: 'prošlé',
   expiring: 'končí',
   valid: 'platné',
@@ -48,7 +49,9 @@ export function evaluate(dataset: Dataset, referenceDate: IsoDate, windowDays: n
       const completion = matching.length ? matching.reduce(later) : null
       const validUntil = completion?.validUntil ?? null
       const status: RequirementStatus = !completion
-        ? 'missing'
+        ? employee.startDate && employee.startDate > referenceDate
+          ? 'beforeStart'
+          : 'missing'
         : validUntil === null
           ? 'valid'
           : validUntil < referenceDate

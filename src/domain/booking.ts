@@ -1,11 +1,13 @@
 import type { IsoDate } from './dates'
-import type { EmployeeCompliance, Requirement } from './compliance'
+import type { EmployeeCompliance, Requirement, RequirementStatus } from './compliance'
 import type { Dataset, Session } from './types'
 
 export type BookingState = {
   confirmed: Record<string, string>
   dismissed: Record<string, string[]>
 }
+
+const isLate = (deadline: IsoDate | null, date: IsoDate) => !!deadline && date > deadline
 
 export const bookingKey = (employeeId: string, code: string) => `${employeeId}|${code}`
 
@@ -19,7 +21,7 @@ export type BookingPlan = {
   offered: Session[]
 }
 
-const RANK = { missing: 0, expired: 1, expiring: 2, valid: 3 }
+const RANK: Record<RequirementStatus, number> = { missing: 0, beforeStart: 1, expired: 2, expiring: 3, valid: 4 }
 
 export function planBookings(
   dataset: Dataset,
@@ -32,6 +34,7 @@ export function planBookings(
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
   const free = new Map(offered.map((s) => [s.id, Math.max(0, s.capacity - s.taken)]))
   const employees = new Map(dataset.employees.map((e) => [e.id, e]))
+  const deadline = (r: Requirement) => (r.status === 'beforeStart' ? (employees.get(r.employeeId)?.startDate ?? null) : r.validUntil)
 
   const confirmed: Booking[] = []
   for (const [key, sessionId] of Object.entries(state.confirmed)) {
@@ -40,7 +43,7 @@ export function planBookings(
     const requirement = compliance.get(employeeId)?.requirements.find((r) => r.code === code)
     if (!session || !requirement || !employees.has(employeeId)) continue
     free.set(sessionId, (free.get(sessionId) ?? 0) - 1)
-    confirmed.push({ employeeId, code, sessionId, late: !!requirement.validUntil && session.date > requirement.validUntil })
+    confirmed.push({ employeeId, code, sessionId, late: isLate(deadline(requirement), session.date) })
   }
   const confirmedKeys = new Set(confirmed.map((b) => bookingKey(b.employeeId, b.code)))
 
@@ -58,7 +61,7 @@ export function planBookings(
     .sort(
       (a, b) =>
         RANK[a.status] - RANK[b.status] ||
-        (a.validUntil ?? '').localeCompare(b.validUntil ?? '') ||
+        (deadline(a) ?? '').localeCompare(deadline(b) ?? '') ||
         a.employeeId.localeCompare(b.employeeId) ||
         a.code.localeCompare(b.code),
     )
@@ -69,7 +72,12 @@ export function planBookings(
     const endDate = employees.get(r.employeeId)?.endDate
     const dismissed = state.dismissed[bookingKey(r.employeeId, r.code)] ?? []
     const eligible = offered.filter(
-      (s) => s.code === r.code && (free.get(s.id) ?? 0) > 0 && !dismissed.includes(s.id) && (!endDate || s.date < endDate),
+      (s) =>
+        s.code === r.code &&
+        (free.get(s.id) ?? 0) > 0 &&
+        !dismissed.includes(s.id) &&
+        (!endDate || s.date < endDate) &&
+        (r.status !== 'beforeStart' || !isLate(deadline(r), s.date)),
     )
     const session = eligible[0]
     if (!session) {
@@ -77,7 +85,7 @@ export function planBookings(
       continue
     }
     free.set(session.id, (free.get(session.id) ?? 0) - 1)
-    suggested.push({ employeeId: r.employeeId, code: r.code, sessionId: session.id, late: !!r.validUntil && session.date > r.validUntil })
+    suggested.push({ employeeId: r.employeeId, code: r.code, sessionId: session.id, late: isLate(deadline(r), session.date) })
   }
   return { suggested, confirmed, unplaceable, free, offered }
 }

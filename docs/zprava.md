@@ -19,7 +19,7 @@ Návrh přihlášek je hladový algoritmus: nejdřív lidé bez školení, pak s
 - „Dnes“ = 1. 10. 2026 (lze změnit), „brzy končí“ = do 90 dní (lze změnit).
 - Platnost: `platnost_do` ze záznamu, jinak datum + platnost z katalogu (katalog se mohl změnit). 0 měsíců = jednorázové, prázdná = nepovinné.
 - Ukončení zaměstnanci jsou skrytí, na rodičovské se zobrazují, ale nepřihlašují. Nikdo se nepřihlašuje na termín po svém ukončení.
-- Žádná ochranná lhůta pro nováčky (BOZP se dle § 103 odst. 2 ZP školí při nástupu).
+- Žádná ochranná lhůta pro nováčky (BOZP se dle § 103 odst. 2 ZP školí při nástupu). Kdo teprve nastoupí, má stav „před nástupem“: nezapočítává se do statistik a navrhuje se mu jen termín nejpozději v den nástupu, jinak spadne do „nelze umístit“.
 - Obsazená místa v termínech nemají jména – předpokládám, že mezi nimi nikdo z navržených není.
 
 ## Co jsem nestihl nebo vynechal

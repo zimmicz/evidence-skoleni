@@ -16,7 +16,13 @@ const TONES: Record<Tone, string> = {
   blue: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200',
 }
 
-const STATUS_TONES: Record<RequirementStatus, Tone> = { missing: 'red', expired: 'red', expiring: 'amber', valid: 'green' }
+const STATUS_TONES: Record<RequirementStatus, Tone> = {
+  missing: 'red',
+  beforeStart: 'blue',
+  expired: 'red',
+  expiring: 'amber',
+  valid: 'green',
+}
 
 export function ToneBadge({ children, tone = 'gray', className }: { children: ReactNode; tone?: Tone; className?: string }) {
   return <Badge className={cn('rounded-md font-medium', TONES[tone], className)}>{children}</Badge>
