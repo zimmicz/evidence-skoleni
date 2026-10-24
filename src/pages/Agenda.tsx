@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { AlertTriangle, CalendarCheck, CalendarX, CheckCircle2, ChevronRight, Clock, Mail, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, CalendarCheck, CalendarX, CheckCircle2, ChevronRight, Clock, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { buildAgenda, type Priority, type Task } from '../domain/agenda'
@@ -10,14 +10,12 @@ import { PageHeader } from '../ui/components'
 const PRIORITY: Record<Priority, { label: string; icon: string; dot: string }> = {
   high: { label: 'Hned', icon: 'bg-red-50 text-red-600', dot: 'bg-red-500' },
   medium: { label: 'Brzy', icon: 'bg-amber-50 text-amber-600', dot: 'bg-amber-500' },
-  low: { label: 'Nezapomenout', icon: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
 }
 
 const ICONS: Record<string, LucideIcon> = {
   data: AlertTriangle,
   unplaceable: CalendarX,
   confirm: CalendarCheck,
-  notify: Mail,
   late: Clock,
 }
 
@@ -58,7 +56,7 @@ export function Agenda() {
           </CardContent>
         </Card>
       ) : (
-        (['high', 'medium', 'low'] as Priority[]).map((p) => {
+        (['high', 'medium'] as Priority[]).map((p) => {
           const group = tasks.filter((t) => t.priority === p)
           if (!group.length) return null
           return (

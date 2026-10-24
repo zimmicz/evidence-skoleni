@@ -6,7 +6,7 @@ import type { Dataset } from './types'
 const ISSUES = { one: 'nesrovnalost', few: 'nesrovnalosti', other: 'nesrovnalostí' }
 const SUGGESTIONS = { one: 'návrh', few: 'návrhy', other: 'návrhů' }
 
-export type Priority = 'high' | 'medium' | 'low'
+export type Priority = 'high' | 'medium'
 
 export type Task = {
   id: string
@@ -19,7 +19,7 @@ export type Task = {
 
 export const SOON_DAYS = 14
 
-const PRIORITY_ORDER: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
+const PRIORITY_ORDER: Record<Priority, number> = { high: 0, medium: 1 }
 
 const count = <T>(items: T[], key: (item: T) => string) => {
   const map = new Map<string, number>()
@@ -41,6 +41,16 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
       link: '/data-quality',
     })
 
+  if (plan.stale.length)
+    tasks.push({
+      id: 'stale',
+      priority: 'high',
+      title: `Potvrzený termín už neplatí: ${plural(plan.stale.length, { one: 'přihláška', few: 'přihlášky', other: 'přihlášek' })}`,
+      detail:
+        'Termín proběhl nebo byl zrušen. Přesuňte přihlášku na jiný termín, nebo potvrzení zrušte. Pokud školení proběhlo, absolvování přijde s dalším exportem.',
+      link: '/sessions',
+    })
+
   for (const [code, n] of count(plan.unplaceable, (r) => r.code))
     tasks.push({
       id: `unplaceable:${code}`,
@@ -51,32 +61,21 @@ export function buildAgenda(dataset: Dataset, plan: BookingPlan, unresolvedIssue
     })
 
   const suggestedBySession = count(plan.suggested, (b) => b.sessionId)
-  const confirmedBySession = count(plan.confirmed, (b) => b.sessionId)
   let laterSuggestions = 0
   let laterSessions = 0
   for (const s of plan.offered) {
     const suggested = suggestedBySession.get(s.id) ?? 0
-    const confirmed = confirmedBySession.get(s.id) ?? 0
-    if (s.date <= soon) {
-      if (suggested)
-        tasks.push({
-          id: `confirm:${s.id}`,
-          priority: 'high',
-          title: `Potvrdit přihlášky na ${s.code} ${formatDate(s.date)}: ${plural(suggested, SUGGESTIONS)}`,
-          detail: `${s.id}, ${s.time}, ${s.place} – termín je do ${SOON_DAYS} dní.`,
-          link: `/sessions?session=${s.id}`,
-          date: s.date,
-        })
-      if (confirmed)
-        tasks.push({
-          id: `notify:${s.id}`,
-          priority: 'low',
-          title: `Rozeslat pozvánky na ${s.code} ${formatDate(s.date)}: ${plural(confirmed, { one: 'potvrzená přihláška', few: 'potvrzené přihlášky', other: 'potvrzených přihlášek' })}`,
-          detail: `${s.id}, ${s.time}, ${s.place} – e-maily a seznam pro pořadatele najdete u termínu.`,
-          link: `/sessions?session=${s.id}`,
-          date: s.date,
-        })
-    } else if (suggested) {
+    if (!suggested) continue
+    if (s.date <= soon)
+      tasks.push({
+        id: `confirm:${s.id}`,
+        priority: 'high',
+        title: `Potvrdit přihlášky na ${s.code} ${formatDate(s.date)}: ${plural(suggested, SUGGESTIONS)}`,
+        detail: `${s.id}, ${s.time}, ${s.place} – termín je do ${SOON_DAYS} dní.`,
+        link: `/sessions?session=${s.id}`,
+        date: s.date,
+      })
+    else {
       laterSuggestions += suggested
       laterSessions += 1
     }

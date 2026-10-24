@@ -95,7 +95,7 @@ export function DataQuality() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Kvalita dat" description="Co se při načtení opravilo, co čeká na rozhodnutí a co se nedalo použít." />
+      <PageHeader title="Kvalita dat" description="" />
       <Tabs defaultValue="issues" className="gap-4">
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="issues" className="flex-none">

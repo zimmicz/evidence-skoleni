@@ -98,6 +98,34 @@ describe('planBookings', () => {
     expect(p.unplaceable.map((r) => [r.employeeId, r.status])).toEqual([['D', 'beforeStart']])
   })
 
+  test('confirmation on a past or cancelled session is reported stale and not re-suggested', () => {
+    const p = plan(
+      {
+        ...base,
+        sessions: [...base.sessions, session('P', '2026-09-01', 10), session('X', '2026-10-12', 10, { status: 'zrušeno' })],
+      },
+      { confirmed: { 'A|KYBER': 'P', 'C|KYBER': 'X' }, dismissed: {} },
+    )
+    expect(p.stale).toEqual([
+      { employeeId: 'A', code: 'KYBER', sessionId: 'P', reason: 'past' },
+      { employeeId: 'C', code: 'KYBER', sessionId: 'X', reason: 'unavailable' },
+    ])
+    expect(p.confirmed).toEqual([])
+    expect(p.suggested.map((b) => b.employeeId)).toEqual(['B'])
+  })
+
+  test('past confirmation is not stale once the completion is imported', () => {
+    const p = plan(
+      {
+        ...base,
+        completions: [...base.completions, completion('A', '2027-09-01')],
+        sessions: [...base.sessions, session('P', '2026-09-01', 10)],
+      },
+      { confirmed: { 'A|KYBER': 'P' }, dismissed: {} },
+    )
+    expect(p.stale).toEqual([])
+  })
+
   test('cancelled, blocked and past sessions are not offered', () => {
     const p = plan({
       ...base,

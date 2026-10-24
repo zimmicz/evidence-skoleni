@@ -1,10 +1,9 @@
-import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { CalendarX, Check, ChevronDown, Clock, Copy, Download, MapPin, X } from 'lucide-react'
+import { CalendarX, Check, ChevronDown, Clock, Download, MapPin, X } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import type { Booking } from '../domain/booking'
+import { bookingKey, type Booking } from '../domain/booking'
 import { STATUS_LABELS } from '../domain/compliance'
 import { formatDate } from '../domain/dates'
 import { toCsv } from '../domain/export'
@@ -24,7 +23,6 @@ function download(name: string, content: string) {
 
 function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOpen: boolean }) {
   const { dataset, compliance, plan, referenceDate, confirm, unconfirm, dismiss } = useStore()
-  const [copied, setCopied] = useState(false)
   const employees = new Map(dataset.employees.map((e) => [e.id, e]))
   const confirmed = plan.confirmed.filter((b) => b.sessionId === session.id)
   const suggested = plan.suggested.filter((b) => b.sessionId === session.id)
@@ -52,12 +50,6 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
       return [b.employeeId, e?.lastName ?? '', e?.firstName ?? '', e?.email ?? '', e?.department ?? '', confirmed ? 'potvrzeno' : 'návrh']
     })
     download(`${session.id}-${session.code}-${session.date}.csv`, toCsv([['id', 'prijmeni', 'jmeno', 'email', 'utvar', 'stav'], ...rows]))
-  }
-
-  const copyEmails = async () => {
-    const emails = attendees.map(({ b }) => employees.get(b.employeeId)?.email).filter(Boolean)
-    await navigator.clipboard.writeText(emails.join('; '))
-    setCopied(true)
   }
 
   return (
@@ -107,10 +99,6 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
             <Button size="sm" variant="outline" disabled={!attendees.length} onClick={exportCsv}>
               <Download />
               Export CSV
-            </Button>
-            <Button size="sm" variant="outline" disabled={!attendees.length} onClick={copyEmails}>
-              <Copy />
-              {copied ? 'Zkopírováno' : 'Kopírovat e-maily'}
             </Button>
           </div>
           {attendees.length === 0 ? (
@@ -169,16 +157,62 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
   )
 }
 
+function StaleBookings() {
+  const { dataset, plan, confirm, unconfirm } = useStore()
+  const employees = new Map(dataset.employees.map((e) => [e.id, e]))
+  const sessions = new Map(dataset.sessions.map((s) => [s.id, s]))
+  return (
+    <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+      <CalendarX />
+      <AlertTitle>Potvrzený termín už neplatí ({plan.stale.length})</AlertTitle>
+      <AlertDescription className="text-amber-800">
+        <p>Přesuňte přihlášku na jiný termín, nebo potvrzení zrušte. Pokud školení proběhlo, absolvování přijde s dalším exportem.</p>
+        <ul className="mt-2 w-full divide-y rounded-lg border border-amber-200 bg-background text-foreground">
+          {plan.stale.map((b) => {
+            const s = sessions.get(b.sessionId)
+            const alternatives = plan.offered.filter((o) => o.code === b.code && (plan.free.get(o.id) ?? 0) > 0)
+            return (
+              <li
+                key={bookingKey(b.employeeId, b.code)}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2.5 text-sm"
+                data-testid={`stale-${b.employeeId}`}
+              >
+                <span className="min-w-40 flex-1">
+                  <EmployeeLink employee={employees.get(b.employeeId)} />
+                  <span className="block text-xs text-muted-foreground">
+                    {b.code} · {b.sessionId}
+                    {s && ` · ${formatDate(s.date)}`} · {b.reason === 'past' ? 'proběhlo' : 'zrušeno nebo nedostupné'}
+                  </span>
+                </span>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {alternatives.length > 0 && (
+                    <MoveForm
+                      sessions={alternatives}
+                      current={alternatives[0].id}
+                      onSubmit={(sessionId) => confirm(b.employeeId, b.code, sessionId)}
+                    />
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => unconfirm(b.employeeId, b.code)}>
+                    Zrušit potvrzení
+                  </Button>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </AlertDescription>
+    </Alert>
+  )
+}
+
 export function Sessions() {
   const { dataset, plan } = useStore()
   const focused = useSearchParams()[0].get('session')
   const employees = new Map(dataset.employees.map((e) => [e.id, e]))
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Termíny"
-        description="Nejdřív ti, kdo školení nemají vůbec, pak s prošlou platností (od nejstarší), pak ti, komu brzy končí. Každý dostane nejbližší termín s volným místem; potvrzené přihlášky drží místo."
-      />
+      <PageHeader title="Termíny" description="" />
+      {plan.stale.length > 0 && <StaleBookings />}
       {plan.unplaceable.length > 0 && (
         <Alert variant="destructive" className="border-red-200 bg-red-50">
           <CalendarX />
@@ -200,7 +234,7 @@ export function Sessions() {
         .map((t) => (
           <section key={t.code} className="space-y-2">
             <h3 className="font-semibold">
-              {t.code} <span className="font-normal text-muted-foreground">– {t.name}</span>
+              {t.name} <span className="font-normal text-muted-foreground">– {t.code}</span>
             </h3>
             {dataset.sessions
               .filter((s) => s.code === t.code)

@@ -13,9 +13,12 @@ export const bookingKey = (employeeId: string, code: string) => `${employeeId}|$
 
 export type Booking = { employeeId: string; code: string; sessionId: string; late: boolean }
 
+export type StaleBooking = { employeeId: string; code: string; sessionId: string; reason: 'past' | 'unavailable' }
+
 export type BookingPlan = {
   suggested: Booking[]
   confirmed: Booking[]
+  stale: StaleBooking[]
   unplaceable: Requirement[]
   free: Map<string, number>
   offered: Session[]
@@ -37,15 +40,22 @@ export function planBookings(
   const deadline = (r: Requirement) => (r.status === 'beforeStart' ? (employees.get(r.employeeId)?.startDate ?? null) : r.validUntil)
 
   const confirmed: Booking[] = []
+  const stale: StaleBooking[] = []
   for (const [key, sessionId] of Object.entries(state.confirmed)) {
     const [employeeId, code] = key.split('|')
-    const session = offered.find((s) => s.id === sessionId && s.code === code)
     const requirement = compliance.get(employeeId)?.requirements.find((r) => r.code === code)
-    if (!session || !requirement || !employees.has(employeeId)) continue
+    if (!requirement || !employees.has(employeeId)) continue
+    const session = offered.find((s) => s.id === sessionId && s.code === code)
+    if (!session) {
+      if (requirement.status === 'valid') continue
+      const past = dataset.sessions.some((s) => s.id === sessionId && s.date < referenceDate)
+      stale.push({ employeeId, code, sessionId, reason: past ? 'past' : 'unavailable' })
+      continue
+    }
     free.set(sessionId, (free.get(sessionId) ?? 0) - 1)
     confirmed.push({ employeeId, code, sessionId, late: isLate(deadline(requirement), session.date) })
   }
-  const confirmedKeys = new Set(confirmed.map((b) => bookingKey(b.employeeId, b.code)))
+  const confirmedKeys = new Set([...confirmed, ...stale].map((b) => bookingKey(b.employeeId, b.code)))
 
   const candidates = [...compliance.values()]
     .flatMap((c) => c.requirements)
@@ -87,5 +97,5 @@ export function planBookings(
     free.set(session.id, (free.get(session.id) ?? 0) - 1)
     suggested.push({ employeeId: r.employeeId, code: r.code, sessionId: session.id, late: isLate(deadline(r), session.date) })
   }
-  return { suggested, confirmed, unplaceable, free, offered }
+  return { suggested, confirmed, stale, unplaceable, free, offered }
 }

@@ -94,7 +94,7 @@ An active Employee (not on parental leave, not terminated) with a Requirement th
 The app's proposal to put a Booking candidate into a specific Session.
 
 **Confirmed booking**:
-A Suggested booking HR accepted (possibly after moving it to another Session). Takes a seat and stays fixed when suggestions are recomputed.
+A Suggested booking HR accepted (possibly after moving it to another Session). Takes a seat and stays fixed when suggestions are recomputed. Confirming sends the invitation to the Employee automatically (outside this app).
 
 **Unplaceable** (nelze umístit):
 A Booking candidate for whom no Session has Free seats.
