@@ -72,8 +72,8 @@ test('import accepts known exports and rejects unknown files', async ({ page }) 
 
   await importDialog.getByLabel('Soubory CSV').setInputFiles(dataFile('terminy_skoleni.csv'))
   await importDialog.getByRole('button', { name: 'Načíst' }).click()
-  const summary = page.getByRole('dialog', { name: 'Data načtena – kontrola' })
-  await expect(summary).toContainText('terminy_skoleni.csv: terminy_skoleni.csv')
+  await expect(importDialog).toBeHidden()
+  await expect(page.getByRole('dialog', { name: 'Data načtena – kontrola' })).toBeVisible()
 })
 
 test.describe('mobile', () => {

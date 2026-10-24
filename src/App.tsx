@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentProps, type ReactNode } from 'react'
 import { createHashRouter, Link, NavLink, Outlet, RouterProvider } from 'react-router'
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Upload,
   Users,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -27,12 +28,11 @@ import { EmployeeDetail } from './pages/EmployeeDetail'
 import { Sessions } from './pages/Sessions'
 import { DataQuality } from './pages/DataQuality'
 import { plural, pluralWord } from './domain/plural'
-import { FILE_LABELS, type FileKind } from './domain/types'
 
 const UNRESOLVED = { one: 'nevyřešená nesrovnalost', few: 'nevyřešené nesrovnalosti', other: 'nevyřešených nesrovnalostí' }
 
 function ImportSummary() {
-  const { report, resolutions, summaryOpen, setSummaryOpen, fileNames, ready } = useStore()
+  const { report, resolutions, summaryOpen, setSummaryOpen, ready } = useStore()
   const unresolved = report.inconsistencies.filter((i) => !resolutions[i.id])
   const byMessage = new Map<string, number>()
   for (const i of unresolved) byMessage.set(i.message, (byMessage.get(i.message) ?? 0) + i.rows.length)
@@ -43,13 +43,6 @@ function ImportSummary() {
           <DialogTitle className="text-lg">Data načtena – kontrola</DialogTitle>
           <DialogDescription>Výsledek kontroly načtených exportů.</DialogDescription>
         </DialogHeader>
-        <ul className="grid gap-x-4 gap-y-1 text-sm text-muted-foreground sm:grid-cols-2">
-          {(Object.keys(FILE_LABELS) as FileKind[]).map((k) => (
-            <li key={k} className="truncate">
-              {FILE_LABELS[k]}: <span className="font-medium text-foreground">{fileNames[k]}</span>
-            </li>
-          ))}
-        </ul>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-lg border p-3">
             <div className="text-2xl font-semibold tabular-nums">{report.normalizations.length}</div>
@@ -102,37 +95,25 @@ function ImportSummary() {
   )
 }
 
-function Nav({ unresolved, onNavigate }: { unresolved: number; onNavigate?: () => void }) {
-  const items = [
-    { to: '/', label: 'Agenda', icon: ClipboardList, end: true },
-    { to: '/overview', label: 'Přehled', icon: LayoutDashboard },
-    { to: '/employees', label: 'Zaměstnanci', icon: Users },
-    { to: '/sessions', label: 'Termíny', icon: CalendarDays },
-    { to: '/data-quality', label: 'Kvalita dat', icon: Database },
-  ]
+function Nav(props: ComponentProps<'nav'>) {
+  return <nav className="flex flex-col gap-0.5" {...props} />
+}
+
+function NavItem({ to, icon: Icon, end, children }: { to: string; icon: LucideIcon; end?: boolean; children: ReactNode }) {
   return (
-    <nav className="flex flex-col gap-0.5">
-      {items.map(({ to, label, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )
-          }
-        >
-          <Icon className="size-4" />
-          <span className="flex-1">{label}</span>
-          {to === '/data-quality' && unresolved > 0 && (
-            <span className="rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white tabular-nums">{unresolved}</span>
-          )}
-        </NavLink>
-      ))}
-    </nav>
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        )
+      }
+    >
+      <Icon className="size-4" />
+      {children}
+    </NavLink>
   )
 }
 
@@ -201,12 +182,34 @@ function Layout() {
     setMenuOpen(false)
     setImportOpen(true)
   }
+  const navItems = (
+    <>
+      <NavItem to="/" icon={ClipboardList} end>
+        Agenda
+      </NavItem>
+      <NavItem to="/overview" icon={LayoutDashboard}>
+        Přehled
+      </NavItem>
+      <NavItem to="/employees" icon={Users}>
+        Zaměstnanci
+      </NavItem>
+      <NavItem to="/sessions" icon={CalendarDays}>
+        Termíny
+      </NavItem>
+      <NavItem to="/data-quality" icon={Database}>
+        Kvalita dat
+        {unresolved > 0 && (
+          <span className="ml-auto rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white tabular-nums">{unresolved}</span>
+        )}
+      </NavItem>
+    </>
+  )
 
   return (
     <div className="min-h-screen bg-muted/40">
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col gap-6 border-r bg-sidebar p-4 lg:flex">
         <Brand />
-        <Nav unresolved={unresolved} />
+        <Nav>{navItems}</Nav>
       </aside>
       <div className="lg:pl-60">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
@@ -225,7 +228,7 @@ function Layout() {
                 <Brand />
               </SheetTitle>
             </SheetHeader>
-            <Nav unresolved={unresolved} onNavigate={() => setMenuOpen(false)} />
+            <Nav onClick={() => setMenuOpen(false)}>{navItems}</Nav>
             <Settings onImport={openImport} className="flex-col items-stretch [&_label]:flex-wrap" />
           </SheetContent>
         </Sheet>

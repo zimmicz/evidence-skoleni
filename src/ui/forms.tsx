@@ -145,8 +145,8 @@ export function MoveForm({ sessions, current, onSubmit }: { sessions: Session[];
           </option>
         ))}
       </select>
-      <Button type="submit" size="sm" variant="outline">
-        Potvrdit sem
+      <Button type="submit" size="sm">
+        Potvrdit
       </Button>
     </form>
   )

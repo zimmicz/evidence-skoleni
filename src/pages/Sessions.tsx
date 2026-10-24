@@ -146,9 +146,6 @@ function SessionCard({ session, initiallyOpen }: { session: Session; initiallyOp
                         </Button>
                       ) : (
                         <>
-                          <Button size="sm" onClick={() => confirm(b.employeeId, b.code, b.sessionId)}>
-                            Potvrdit
-                          </Button>
                           <MoveForm
                             sessions={alternatives}
                             current={session.id}

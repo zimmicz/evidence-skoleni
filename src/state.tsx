@@ -87,7 +87,6 @@ type Store = {
   booking: BookingState
   referenceDate: string
   windowDays: number
-  fileNames: Record<FileKind, string>
   summaryOpen: boolean
   setSummaryOpen: (open: boolean) => void
   importFiles: (files: LoadedFile[]) => void
@@ -150,9 +149,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     booking: state.booking,
     referenceDate: state.referenceDate,
     windowDays: state.windowDays,
-    fileNames: Object.fromEntries(
-      (Object.keys(SAMPLE_URLS) as FileKind[]).map((k) => [k, state.files[k]?.name ?? 'ukázková data']),
-    ) as Record<FileKind, string>,
     summaryOpen,
     setSummaryOpen,
     importFiles: (files) => {
