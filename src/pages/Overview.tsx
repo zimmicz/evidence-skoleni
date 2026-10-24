@@ -22,6 +22,7 @@ export function Overview() {
     a.localeCompare(b, 'cs'),
   )
   const sessionOf = new Map([...plan.confirmed, ...plan.suggested].map((b) => [`${b.employeeId}|${b.code}`, b]))
+  const staleKeys = new Set(plan.stale.map((b) => `${b.employeeId}|${b.code}`))
   const expiringSoon = requirements
     .filter((r) => r.status === 'expiring')
     .sort((a, b) => (a.validUntil ?? '').localeCompare(b.validUntil ?? ''))
@@ -150,6 +151,8 @@ export function Overview() {
                             )}
                             {b.late && <ToneBadge tone="amber">až po konci platnosti</ToneBadge>}
                           </span>
+                        ) : staleKeys.has(`${r.employeeId}|${r.code}`) ? (
+                          <ToneBadge tone="amber">potvrzený termín neplatí</ToneBadge>
                         ) : (
                           '—'
                         )}

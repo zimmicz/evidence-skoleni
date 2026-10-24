@@ -38,6 +38,10 @@ export function planBookings(
   const free = new Map(offered.map((s) => [s.id, Math.max(0, s.capacity - s.taken)]))
   const employees = new Map(dataset.employees.map((e) => [e.id, e]))
   const deadline = (r: Requirement) => (r.status === 'beforeStart' ? (employees.get(r.employeeId)?.startDate ?? null) : r.validUntil)
+  const needsBooking = (r: Requirement) => {
+    const e = employees.get(r.employeeId)
+    return r.status !== 'valid' && e?.status === 'aktivní' && (!e.endDate || e.endDate > referenceDate)
+  }
 
   const confirmed: Booking[] = []
   const stale: StaleBooking[] = []
@@ -47,8 +51,8 @@ export function planBookings(
     if (!requirement || !employees.has(employeeId)) continue
     const session = offered.find((s) => s.id === sessionId && s.code === code)
     if (!session) {
-      if (requirement.status === 'valid') continue
-      const past = dataset.sessions.some((s) => s.id === sessionId && s.date < referenceDate)
+      const past = dataset.sessions.find((s) => s.id === sessionId && s.date < referenceDate)
+      if (!needsBooking(requirement) || (past && requirement.completion && requirement.completion.date >= past.date)) continue
       stale.push({ employeeId, code, sessionId, reason: past ? 'past' : 'unavailable' })
       continue
     }
@@ -59,15 +63,7 @@ export function planBookings(
 
   const candidates = [...compliance.values()]
     .flatMap((c) => c.requirements)
-    .filter((r) => {
-      const e = employees.get(r.employeeId)
-      return (
-        r.status !== 'valid' &&
-        e?.status === 'aktivní' &&
-        (!e.endDate || e.endDate > referenceDate) &&
-        !confirmedKeys.has(bookingKey(r.employeeId, r.code))
-      )
-    })
+    .filter((r) => needsBooking(r) && !confirmedKeys.has(bookingKey(r.employeeId, r.code)))
     .sort(
       (a, b) =>
         RANK[a.status] - RANK[b.status] ||

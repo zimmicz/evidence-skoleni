@@ -126,6 +126,31 @@ describe('planBookings', () => {
     expect(p.stale).toEqual([])
   })
 
+  test('past confirmation fulfilled by a completion stays hidden after that completion starts expiring', () => {
+    const p = plan(
+      {
+        ...base,
+        completions: [{ ...completion('A', '2026-11-01'), date: '2026-09-01' }],
+        sessions: [...base.sessions, session('P', '2026-09-01', 10)],
+      },
+      { confirmed: { 'A|KYBER': 'P' }, dismissed: {} },
+    )
+    expect(p.stale).toEqual([])
+    expect(p.suggested.map((b) => b.employeeId)).toContain('A')
+  })
+
+  test('stale confirmation of a departed or inactive employee is not reported', () => {
+    const p = plan(
+      {
+        ...base,
+        employees: [employee('A', { endDate: '2026-09-30' }), employee('B', { status: 'ukončen' }), employee('C')],
+        sessions: [...base.sessions, session('P', '2026-09-01', 10)],
+      },
+      { confirmed: { 'A|KYBER': 'P', 'B|KYBER': 'P' }, dismissed: {} },
+    )
+    expect(p.stale).toEqual([])
+  })
+
   test('cancelled, blocked and past sessions are not offered', () => {
     const p = plan({
       ...base,

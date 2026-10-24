@@ -128,6 +128,8 @@ export function EmployeeDetail() {
                           {b.confirmed ? <ToneBadge tone="green">potvrzeno</ToneBadge> : <ToneBadge tone="blue">návrh</ToneBadge>}
                           {b.late && <ToneBadge tone="amber">po konci platnosti</ToneBadge>}
                         </span>
+                      ) : plan.stale.some((x) => x.employeeId === employee.id && x.code === r.code) ? (
+                        <ToneBadge tone="amber">potvrzený termín neplatí</ToneBadge>
                       ) : r.status !== 'valid' && employee.status === 'rodičovská' ? (
                         <span className="text-muted-foreground">na rodičovské – nepřihlašuje se</span>
                       ) : r.status !== 'valid' && plan.unplaceable.includes(r) ? (
