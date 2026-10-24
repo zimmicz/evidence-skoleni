@@ -1,59 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { z } from 'zod'
+import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
 import employeesUrl from '../data/zamestnanci.csv?url'
 import trainingsUrl from '../data/katalog_skoleni.csv?url'
 import completionsUrl from '../data/absolvovana_skoleni.csv?url'
 import sessionsUrl from '../data/terminy_skoleni.csv?url'
-import { bookingKey, planBookings, type BookingPlan, type BookingState } from './domain/booking'
+import { planBookings, type BookingPlan, type BookingState } from './domain/booking'
 import { evaluate, type EmployeeCompliance } from './domain/compliance'
 import { decode, detectKind, parseCsv, type LoadedFile } from './domain/csv'
 import { buildDataset, type Resolutions, type Tables } from './domain/import'
 import type { Dataset, FileKind, ImportReport, Resolution } from './domain/types'
+import { load, reducer, save } from './persisted'
 
-const STORAGE_KEY = 'evidence-skoleni:v1'
 const SAMPLE_URLS: Record<FileKind, string> = {
   employees: employeesUrl,
   trainings: trainingsUrl,
   completions: completionsUrl,
   sessions: sessionsUrl,
-}
-const DEFAULT_REFERENCE_DATE = '2026-10-01'
-const DEFAULT_WINDOW = 90
-
-const fileKind = z.enum(['employees', 'trainings', 'completions', 'sessions'])
-const resolution = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('map'), value: z.string() }),
-  z.object({ action: z.literal('exclude') }),
-  z.object({ action: z.literal('ignore') }),
-])
-const persistedSchema = z.object({
-  files: z.partialRecord(fileKind, z.object({ name: z.string(), text: z.string() })),
-  resolutions: z.record(z.string(), resolution),
-  booking: z.object({
-    confirmed: z.record(z.string(), z.string()),
-    dismissed: z.record(z.string(), z.array(z.string())),
-  }),
-  referenceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  windowDays: z.number().int().min(0).max(3650),
-})
-type Persisted = z.infer<typeof persistedSchema>
-
-const empty = (): Persisted => ({
-  files: {},
-  resolutions: {},
-  booking: { confirmed: {}, dismissed: {} },
-  referenceDate: DEFAULT_REFERENCE_DATE,
-  windowDays: DEFAULT_WINDOW,
-})
-
-function save(state: Persisted): Persisted {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    return state
-  }
-  return state
 }
 
 async function fetchSamples(): Promise<Record<FileKind, string>> {
@@ -67,15 +29,6 @@ async function fetchSamples(): Promise<Record<FileKind, string>> {
   return Object.fromEntries(entries) as Record<FileKind, string>
 }
 
-function load(): Persisted {
-  try {
-    const parsed = persistedSchema.safeParse(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null'))
-    return parsed.success ? parsed.data : empty()
-  } catch {
-    return empty()
-  }
-}
-
 type Store = {
   ready: boolean
   loadError: string | null
@@ -87,8 +40,6 @@ type Store = {
   booking: BookingState
   referenceDate: string
   windowDays: number
-  summaryOpen: boolean
-  setSummaryOpen: (open: boolean) => void
   importFiles: (files: LoadedFile[]) => void
   resolve: (id: string, resolution: Resolution | null) => void
   confirm: (employeeId: string, code: string, sessionId: string) => void
@@ -109,9 +60,10 @@ const emptyTables = (): Tables => ({
 })
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<Persisted>(load)
-  const [summaryOpen, setSummaryOpen] = useState(true)
+  const [state, dispatch] = useReducer(reducer, undefined, load)
   const { data: samples, error } = useQuery({ queryKey: ['samples'], queryFn: fetchSamples, staleTime: Infinity })
+
+  useEffect(() => save(state), [state])
 
   const tables = useMemo(() => {
     if (!samples) return emptyTables()
@@ -136,8 +88,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [dataset, compliance, state.referenceDate, state.booking],
   )
 
-  const update = useCallback((fn: (s: Persisted) => Persisted) => setState((s) => save(fn(s))), [])
-
   const store: Store = {
     ready: !!samples,
     loadError: error ? String(error) : null,
@@ -149,44 +99,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     booking: state.booking,
     referenceDate: state.referenceDate,
     windowDays: state.windowDays,
-    summaryOpen,
-    setSummaryOpen,
-    importFiles: (files) => {
-      update((s) => ({ ...s, files: { ...s.files, ...Object.fromEntries(files.map((f) => [f.kind, { name: f.name, text: f.text }])) } }))
-      setSummaryOpen(true)
-    },
-    resolve: (id, r) =>
-      update((s) => {
-        const resolutions = { ...s.resolutions }
-        if (r) resolutions[id] = r
-        else delete resolutions[id]
-        return { ...s, resolutions }
-      }),
-    confirm: (employeeId, code, sessionId) =>
-      update((s) => ({
-        ...s,
-        booking: { ...s.booking, confirmed: { ...s.booking.confirmed, [bookingKey(employeeId, code)]: sessionId } },
-      })),
-    unconfirm: (employeeId, code) =>
-      update((s) => {
-        const confirmed = { ...s.booking.confirmed }
-        delete confirmed[bookingKey(employeeId, code)]
-        return { ...s, booking: { ...s.booking, confirmed } }
-      }),
-    dismiss: (employeeId, code, sessionId) =>
-      update((s) => {
-        const key = bookingKey(employeeId, code)
-        return {
-          ...s,
-          booking: { ...s.booking, dismissed: { ...s.booking.dismissed, [key]: [...(s.booking.dismissed[key] ?? []), sessionId] } },
-        }
-      }),
-    setReferenceDate: (referenceDate) => update((s) => ({ ...s, referenceDate })),
-    setWindowDays: (windowDays) => update((s) => ({ ...s, windowDays })),
-    reset: () => {
-      setState(save(empty()))
-      setSummaryOpen(true)
-    },
+    importFiles: (files) => dispatch({ type: 'import', files }),
+    resolve: (id, resolution) => dispatch({ type: 'resolve', id, resolution }),
+    confirm: (employeeId, code, sessionId) => dispatch({ type: 'confirm', employeeId, code, sessionId }),
+    unconfirm: (employeeId, code) => dispatch({ type: 'unconfirm', employeeId, code }),
+    dismiss: (employeeId, code, sessionId) => dispatch({ type: 'dismiss', employeeId, code, sessionId }),
+    setReferenceDate: (date) => dispatch({ type: 'setReferenceDate', date }),
+    setWindowDays: (days) => dispatch({ type: 'setWindowDays', days }),
+    reset: () => dispatch({ type: 'reset' }),
   }
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>

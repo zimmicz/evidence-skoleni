@@ -47,8 +47,8 @@ function NavItem({ to, icon: Icon, end, children }: { to: string; icon: LucideIc
   )
 }
 
-function Settings({ onImport, className }: { onImport: () => void; className?: string }) {
-  const { referenceDate, setReferenceDate, windowDays, setWindowDays, reset } = useStore()
+function Settings({ onImport, onReset, className }: { onImport: () => void; onReset: () => void; className?: string }) {
+  const { referenceDate, setReferenceDate, windowDays, setWindowDays } = useStore()
   return (
     <div className={cn('flex flex-wrap items-center gap-2 text-sm', className)}>
       <label className="flex items-center gap-1.5 text-muted-foreground">
@@ -82,7 +82,7 @@ function Settings({ onImport, className }: { onImport: () => void; className?: s
       <Button
         variant="outline"
         onClick={() => {
-          if (window.confirm('Smazat importovaná data, rozhodnutí i potvrzené přihlášky a vrátit ukázková data?')) reset()
+          if (window.confirm('Smazat importovaná data, rozhodnutí i potvrzené přihlášky a vrátit ukázková data?')) onReset()
         }}
       >
         <RotateCcw />
@@ -104,13 +104,18 @@ function Brand() {
 }
 
 export function Layout() {
-  const { report, resolutions, ready, loadError } = useStore()
+  const { report, resolutions, ready, loadError, reset } = useStore()
   const [importOpen, setImportOpen] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const unresolved = report.inconsistencies.filter((i) => !resolutions[i.id]).length
   const openImport = () => {
     setMenuOpen(false)
     setImportOpen(true)
+  }
+  const resetData = () => {
+    reset()
+    setSummaryOpen(true)
   }
   const navItems = (
     <>
@@ -149,7 +154,7 @@ export function Layout() {
               <Menu />
             </Button>
           </div>
-          <Settings onImport={openImport} className="hidden justify-end px-6 py-2.5 lg:flex" />
+          <Settings onImport={openImport} onReset={resetData} className="hidden justify-end px-6 py-2.5 lg:flex" />
         </header>
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetContent side="left" className="w-72 gap-6 p-4" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -159,7 +164,7 @@ export function Layout() {
               </SheetTitle>
             </SheetHeader>
             <Nav onClick={() => setMenuOpen(false)}>{navItems}</Nav>
-            <Settings onImport={openImport} className="flex-col items-stretch [&_label]:flex-wrap" />
+            <Settings onImport={openImport} onReset={resetData} className="flex-col items-stretch [&_label]:flex-wrap" />
           </SheetContent>
         </Sheet>
         <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 lg:px-8">
@@ -186,10 +191,15 @@ export function Layout() {
             <DialogTitle className="text-lg">Import exportů</DialogTitle>
             <DialogDescription>Nahrajte nové exporty z personálního systému.</DialogDescription>
           </DialogHeader>
-          <ImportForm onDone={() => setImportOpen(false)} />
+          <ImportForm
+            onDone={() => {
+              setImportOpen(false)
+              setSummaryOpen(true)
+            }}
+          />
         </DialogContent>
       </Dialog>
-      <ImportSummary />
+      <ImportSummary open={summaryOpen} onOpenChange={setSummaryOpen} />
     </div>
   )
 }

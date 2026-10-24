@@ -5,13 +5,13 @@ import { useStore } from '../state'
 import { pluralWord } from '../domain/plural'
 import { UNRESOLVED } from './labels'
 
-export function ImportSummary() {
-  const { report, resolutions, summaryOpen, setSummaryOpen, ready } = useStore()
+export function ImportSummary({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { report, resolutions, ready } = useStore()
   const unresolved = report.inconsistencies.filter((i) => !resolutions[i.id])
   const byMessage = new Map<string, number>()
   for (const i of unresolved) byMessage.set(i.message, (byMessage.get(i.message) ?? 0) + i.rows.length)
   return (
-    <Dialog open={ready && summaryOpen} onOpenChange={setSummaryOpen}>
+    <Dialog open={ready && open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg">Data načtena – kontrola</DialogTitle>
@@ -55,11 +55,11 @@ export function ImportSummary() {
           Řádky s nevyřešenou nesrovnalostí se do výpočtů nezapočítávají (nebo se použijí bez opravené hodnoty), dokud o nich nerozhodnete.
         </p>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setSummaryOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Zavřít
           </Button>
           <Button asChild>
-            <Link to="/data-quality" onClick={() => setSummaryOpen(false)}>
+            <Link to="/data-quality" onClick={() => onOpenChange(false)}>
               Zobrazit kvalitu dat
             </Link>
           </Button>

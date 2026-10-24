@@ -42,7 +42,7 @@ Pure pipeline in `src/domain/` (no React), all unit-tested against the real `dat
 3. `compliance.ts` — Requirements per employee from catalog rules; status missing / expired / expiring / valid; best completion = latest Valid until (`null` = never expires).
 4. `booking.ts` — urgency greedy (ADR 0001); Confirmed bookings and dismissed sessions come from persisted `BookingState`.
 
-`src/state.tsx` — single React context: sample CSVs fetched with TanStack Query (`?url` imports of `data/*.csv`), persisted state (imported file texts, resolutions, bookings, settings) validated with Zod on load from localStorage and saved on every update; derived dataset/compliance/plan via `useMemo`.
+`src/persisted.ts` — persisted state (imported file texts, resolutions, bookings, settings): Zod schema, localStorage load/save, pure `reducer`. `src/state.tsx` — single React context: `useReducer` over it (saved on every change), sample CSVs fetched with TanStack Query (`?url` imports of `data/*.csv`), derived dataset/compliance/plan via `useMemo`. UI-only state (dialogs) lives in components, not the store.
 
 Every count shown with a Czech noun goes through `plural()` / `pluralWord()` in `src/domain/plural.ts` (`Intl.PluralRules('cs')`: 1 člověk, 2–4 lidé, 5+ lidí).
 
