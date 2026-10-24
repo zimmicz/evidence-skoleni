@@ -2,7 +2,7 @@
 
 Webová aplikace pro personální oddělení: kdo je jak proškolen, komu končí platnost školení, co je potřeba řešit a koho přihlásit na který termín.
 
-- Aplikace: https://zimmicz.github.io/evidence-skoleni/
+- Aplikace: https://www.zimmi.cz/evidence-skoleni/
 - Průvodní text: [docs/zprava.md](docs/zprava.md)
 - Použití AI: [docs/ai.md](docs/ai.md)
 - Zadání: [docs/zadani.md](docs/zadani.md)
