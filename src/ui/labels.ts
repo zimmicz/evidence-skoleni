@@ -7,6 +7,8 @@ export const ACTION_LABELS: Record<ResolutionAction, string> = {
   ignore: 'Ponechat jak je',
 }
 
+export const UNRESOLVED = { one: 'nevyřešená nesrovnalost', few: 'nevyřešené nesrovnalosti', other: 'nevyřešených nesrovnalostí' }
+
 export function resolutionLabel(issue: Inconsistency, r: Resolution): string {
   if (r.action !== 'map') return ACTION_LABELS[r.action]
   const option = issue.target?.type === 'select' ? issue.target.options.find((o) => o.value === r.value) : undefined
